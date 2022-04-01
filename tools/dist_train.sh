@@ -8,6 +8,7 @@ PORT=${PORT:-29500}
 MASTER_ADDR=${MASTER_ADDR:-"127.0.0.1"}
 
 PYTHONPATH="$(dirname $0)/..":$PYTHONPATH \
+
 python -m torch.distributed.launch \
     --nnodes=$NNODES \
     --node_rank=$NODE_RANK \
@@ -18,3 +19,4 @@ python -m torch.distributed.launch \
     $CONFIG \
     --seed 0 \
     --launcher pytorch ${@:3}
+    --breast

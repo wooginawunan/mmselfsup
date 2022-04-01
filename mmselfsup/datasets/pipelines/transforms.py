@@ -6,7 +6,6 @@ import numpy as np
 import torch
 from mmcv.utils import build_from_cfg
 from PIL import Image, ImageFilter
-from timm.data import create_transform
 from torchvision import transforms as _transforms
 
 from ..builder import PIPELINES
@@ -19,6 +18,7 @@ for m in inspect.getmembers(_transforms, inspect.isclass):
 
 
 @PIPELINES.register_module()
+
 class BlockwiseMaskGenerator(object):
     """Generate random block mask for each Image.
 
@@ -237,3 +237,37 @@ class Solarization(object):
         repr_str += f'threshold = {self.threshold}, '
         repr_str += f'prob = {self.prob}'
         return repr_str
+
+# Transforms for breast cancer screening
+
+@PIPELINES.register_module()
+class Standardizer(object):
+
+    def __init__(self):
+        pass
+
+    def __call__(self, img):
+        img = (img - img.mean()) / np.maximum(img.std(), 10 ** (-5))
+        return img
+
+
+@PIPELINES.register_module()
+class CopyChannel(object):
+
+    def __init__(self):
+        pass
+
+    def __call__(self, img):
+        return img.repeat([3,1,1])
+
+
+@PIPELINES.register_module()
+class ToNumpy(object):
+    """
+    Use this class to shut up "UserWarning: The given NumPy array is not writeable ..."
+    """
+    def __init__(self):
+        pass
+
+    def __call__(self, img):
+        return np.array(img)

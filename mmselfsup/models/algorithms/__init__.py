@@ -2,6 +2,7 @@
 from .base import BaseModel
 from .byol import BYOL
 from .classification import Classification
+from .breast_classification import FFDMClassification, USClassification
 from .deepcluster import DeepCluster
 from .densecl import DenseCL
 from .mae import MAE
@@ -16,9 +17,11 @@ from .simclr import SimCLR
 from .simmim import SimMIM
 from .simsiam import SimSiam
 from .swav import SwAV
+from .breast_swav import BreastSwAV
 
 __all__ = [
     'BaseModel', 'BYOL', 'Classification', 'DeepCluster', 'DenseCL', 'MoCo',
     'NPID', 'ODC', 'RelativeLoc', 'RotationPred', 'SimCLR', 'SimSiam', 'SwAV',
-    'MAE', 'MoCoV3', 'SimMIM', 'MMClsImageClassifierWrapper'
+    'MAE', 'MoCoV3', 'SimMIM', 'MMClsImageClassifierWrapper', 'BreastSwAV',
+    'FFDMClassification', 'USClassification'
 ]

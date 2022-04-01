@@ -27,4 +27,13 @@ python -m torch.distributed.launch \
     --work-dir $WORK_DIR \
     --seed 0 \
     --launcher="pytorch" \
+    --breast \
     ${PY_ARGS}
+
+
+
+# bash tools/benchmarks/classification/dist_train_liner.sh \
+# configs/benchmarks/classification/nyubreast/ffdm.py \
+# /gpfs/data/geraslab/Nan/saves/selfsup/swav_breast/data_20220111_full/swav_resnet18_avgpool_coslr-100e_largebatch_skynet-gpu32/latest.pth
+# 1 
+

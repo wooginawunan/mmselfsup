@@ -69,6 +69,7 @@ def set_random_seed(seed, deterministic=False):
 def train_model(model,
                 dataset,
                 cfg,
+                breast=True,
                 distributed=False,
                 timestamp=None,
                 meta=None):
@@ -93,6 +94,7 @@ def train_model(model,
     data_loaders = [
         build_dataloader(
             ds,
+            breast=breast,
             samples_per_gpu=cfg.data.samples_per_gpu,
             workers_per_gpu=cfg.data.workers_per_gpu,
             # `num_gpus` will be ignored if distributed
@@ -103,7 +105,8 @@ def train_model(model,
             drop_last=getattr(cfg.data, 'drop_last', False),
             prefetch=cfg.prefetch,
             persistent_workers=cfg.persistent_workers,
-            img_norm_cfg=cfg.img_norm_cfg) for ds in dataset
+            img_norm_cfg=cfg.img_norm_cfg,
+            timeout=0) for ds in dataset
     ]
 
     # put model on gpus
@@ -179,7 +182,7 @@ def train_model(model,
             workers_per_gpu=cfg.data.workers_per_gpu,
             dist=distributed,
             shuffle=False,
-            prefetch=cfg.data.val.prefetch,
+            prefetch=cfg.prefetch,
             drop_last=getattr(cfg.data, 'drop_last', False),
             img_norm_cfg=cfg.get('img_norm_cfg', dict()))
         eval_cfg = cfg.get('evaluation', {})
@@ -202,5 +205,5 @@ def train_model(model,
     if cfg.resume_from:
         runner.resume(cfg.resume_from)
     elif cfg.load_from:
-        runner.load_checkpoint(cfg.load_from)
+        runner.load_checkpoint(cfg.load_from, cfg.revise_keys) #[(r'^module.', '')]
     runner.run(data_loaders, cfg.workflow)
