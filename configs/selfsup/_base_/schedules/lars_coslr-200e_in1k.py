@@ -12,4 +12,4 @@ lr_config = dict(
     warmup_by_epoch=True)
 
 # runtime settings
-runner = dict(type='EpochBasedRunner', max_epochs=200)
+runner = dict(type='EpochBasedRunner', max_epochs=100)
