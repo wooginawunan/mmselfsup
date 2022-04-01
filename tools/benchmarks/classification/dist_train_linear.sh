@@ -27,9 +27,7 @@ python -m torch.distributed.launch \
     --work-dir $WORK_DIR \
     --seed 0 \
     --launcher="pytorch" \
-    --breast \
     ${PY_ARGS}
-
 
 
 # bash tools/benchmarks/classification/dist_train_liner.sh \

@@ -1,7 +1,51 @@
-_base_ = [
-    '../_base_/datasets/breast.py',
+# dataset settings
+data_source = 'NYUBreastScreening'
+dataset_type = 'BreastUSClassification'
+
+train_pipeline = [
+    dict(type='RandomHorizontalFlip', p=0.5),
+    dict(type='RandomVerticalFlip', p=0.5),
+    dict(type='RandomAffine', degrees=(-10, 10), translate=(0.1,0.1), scale=(0.9, 1.1)),
+    dict(type='Resize', size=(224, 224)),
+    dict(type='ToNumpy'), # TODO
+    dict(type='ToTensor'),
+    dict(type='Standardizer')
+]
+val_pipeline = [
+    dict(type='Resize', size=(224, 224)),
+    dict(type='ToNumpy'), # TODO
+    dict(type='ToTensor'),
+    dict(type='Standardizer')
 ]
 
+# prefetch
+prefetch = False
+img_norm_cfg = dict()
+
+# dataset summary
+data = dict(
+    samples_per_gpu=4,  # total 32*8=256
+    workers_per_gpu=0,
+    drop_last=True,
+    train=dict(
+        type=dataset_type,
+        data_source=dict(
+            type=data_source,
+            data_prefix='/gpfs/data/geraslab/Nan/data/breast_mml_datalists/20220111/breasts_lists/ffdm_screening_only/full',
+            test_mode=False,
+        ),
+        pipeline=train_pipeline),
+    val=dict(
+        type=dataset_type,
+        data_source=dict(
+            type=data_source,
+            data_prefix='/gpfs/data/geraslab/Nan/data/breast_mml_datalists/20220111/breasts_lists/ffdm_screening_only/full',
+            test_mode=True,
+        ),
+        pipeline=val_pipeline)
+    )
+
+evaluation = dict(interval=1, topk=(1))
 
 model = dict(
     type='USClassification',
