@@ -1,4 +1,5 @@
 # Copyright (c) OpenMMLab. All rights reserved.
+import math
 import numpy as np
 import torch
 from mmcv.runner import get_dist_info
@@ -93,6 +94,84 @@ class DistributedSampler(_DistributedSampler):
         assert len(indices) == self.total_size, \
             f'{len(indices)} vs {self.total_size}'
         self.indices = indices
+
+
+class DistributedWeightedSubsetSampler(DistributedSampler):
+    def __init__(self,
+                 dataset,
+                 num_replicas=None,
+                 rank=None,
+                 num_subsamples=None,
+                 shuffle=True,
+                 replace=False,
+                 seed=0):
+        super().__init__(dataset, num_replicas=num_replicas, rank=rank)
+        self.shuffle = shuffle
+        self.replace = replace
+        self.unif_sampling_flag = False
+        if not isinstance(num_subsamples, int) or isinstance(num_subsamples, bool) or \
+                num_subsamples <= 0:
+            raise ValueError("num_subsamples should be a positive integer "
+                             "value, but got num_subsamples={}".format(num_subsamples))
+        # In distributed sampling, different ranks should sample
+        # non-overlapped data in the dataset. Therefore, this function
+        # is used to make sure that each rank shuffles the data indices
+        # in the same order based on the same seed. Then different ranks
+        # could use different indices to select non-overlapped data from the
+        # same data list.
+        self.num_subsamples = num_subsamples
+        self.seed = sync_random_seed(seed)
+        if self.drop_last and num_subsamples % self.num_replicas != 0:  # type: ignore[arg-type]
+            # Split to nearest available length that is evenly divisible.
+            # This is to ensure each rank receives the same amount of data when
+            # using this Sampler.
+            self.num_samples = math.ceil(
+                (num_subsamples - self.num_replicas) / self.num_replicas  # type: ignore[arg-type]
+            )
+        else:
+            self.num_samples = math.ceil(num_subsamples / self.num_replicas)  # type: ignore[arg-type]
+        self.total_size = self.num_samples * self.num_replicas
+
+    def gather_sampled_indices(self, targets):
+        pos_indices = [i for i, t in enumerate(targets) if t==1]
+        neg_indices = [i for i, t in enumerate(targets) if t==0]
+        
+        assert len(pos_indices)<self.total_size
+
+        neg_indices = neg_indices[:self.total_size-len(pos_indices)]
+
+        indices = neg_indices+pos_indices
+        return indices
+
+    def generate_new_list(self):
+        # get targets (you can alternatively pass them in __init__, if this op is expensive)
+        targets = self.dataset.gt_labels#biopsed_labels
+        indices = self.gather_sampled_indices(targets)
+        assert len(indices)==self.total_size
+
+        if self.shuffle:
+            g = torch.Generator()
+            # When :attr:`shuffle=True`, this ensures all replicas
+            # use a different random ordering for each epoch.
+            # Otherwise, the next iteration of this sampler will
+            # yield the same ordering.
+            g.manual_seed(self.epoch + self.seed)
+            if self.replace:
+                ind_indices = torch.randint(
+                    low=0,
+                    high=len(indices),
+                    size=(len(indices), ),
+                    generator=g).tolist()
+                indices = [indices[i] for i in ind_indices]
+            else:
+                ind_indices = torch.randperm(len(indices), generator=g).tolist()
+                indices = [indices[i] for i in ind_indices]
+        else:
+            indices = torch.sort(indices).tolist()
+
+        self.indices = indices
+        # _, stats = np.unique([ targets[i] for i in self.indices], return_counts=True)
+        # print(stats)
 
 
 class DistributedGivenIterationSampler(Sampler):

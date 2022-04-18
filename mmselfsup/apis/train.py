@@ -95,6 +95,7 @@ def train_model(model,
         build_dataloader(
             ds,
             breast=breast,
+            num_subsamples=getattr(cfg.data, 'num_subsamples', len(ds)),
             samples_per_gpu=cfg.data.samples_per_gpu,
             workers_per_gpu=cfg.data.workers_per_gpu,
             # `num_gpus` will be ignored if distributed
@@ -178,6 +179,7 @@ def train_model(model,
         val_dataset = build_dataset(cfg.data.val)
         val_dataloader = build_dataloader(
             val_dataset,
+            breast=breast,
             samples_per_gpu=cfg.data.samples_per_gpu,
             workers_per_gpu=cfg.data.workers_per_gpu,
             dist=distributed,
