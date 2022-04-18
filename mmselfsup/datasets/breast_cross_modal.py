@@ -1,8 +1,9 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import torch
 
-from mmcv.utils import build_from_cfg
+from mmcv.utils import build_from_cfg, print_log
 from torchvision.transforms import Compose
+from sklearn.metrics import roc_auc_score
 
 from .base import BaseDataset
 from .builder import DATASETS, PIPELINES, build_datasource
@@ -52,18 +53,61 @@ class BreastScreeningDataset(BaseDataset):
 
         return dict(img=[img_ffdm, imgs_us], idx=idx, us_counts=us_counts)
 
-    # TODO: 
     def evaluate(self, results, logger=None):
-        return NotImplemented
+        """The evaluation function to output accuracy.
+
+        Args:
+            results (dict): The key-value pair is the output head name and
+                corresponding prediction values.
+            logger (logging.Logger | str | None, optional): The defined logger
+                to be used. Defaults to None.
+            topk (tuple(int)): The output includes topk accuracy.
+        """
+        criterion = torch.nn.CrossEntropyLoss()
+
+        eval_res = {}
+        for name, val in results.items():
+
+            """Compute the loss."""
+        
+            val = torch.from_numpy(val)
+            target = torch.LongTensor(self.data_source.get_gt_labels())
+            assert val.size(0) == target.size(0), (
+                f'Inconsistent length for results and labels, '
+                f'{val.size(0)} vs {target.size(0)}')
+
+            num = val.size(0)
+
+            loss = criterion(val, target)
+            eval_res[f'{name}_loss'] = loss.item()
+
+            pred = torch.nn.functional.softmax(val, dim=1)[:, 1]
+            auc = roc_auc_score(target, pred)
+            eval_res[f'{name}_auc'] = auc
+                
+            _, pred = val.max(dim=1)
+            pred = pred.t()
+            correct = pred.eq(target).contiguous().view(-1).float().sum(0).item()
+            acc = correct * 100.0 / num
+            eval_res[f'{name}_acc'] = acc
+
+            if logger is not None and logger != 'silent':
+                print_log(f'{name}_loss: {loss:.03f}', logger=logger)
+                print_log(f'{name}_acc: {acc:.03f}', logger=logger)
+                print_log(f'{name}_auc: {auc:.03f}', logger=logger)
+
+
+        return eval_res
 
 
 @DATASETS.register_module()
-class BreastFFDMClassification(BaseDataset):
+class BreastFFDMClassification(BreastScreeningDataset):
 
     def __init__(self, data_source, pipeline, prefetch=False):
         super(BreastFFDMClassification, self).__init__(data_source, pipeline, 
             prefetch)
         self.gt_labels = self.data_source.get_gt_labels()
+        self.biopsed_labels = self.data_source.get_biopsied_labels()
 
     def __getitem__(self, idx):
         label = self.gt_labels[idx]
@@ -73,45 +117,15 @@ class BreastFFDMClassification(BaseDataset):
             img = torch.from_numpy(to_numpy(img))
         return dict(img=img, label=label, idx=idx)
 
-    def evaluate(self, results, logger=None, topk=(1, 5)):
-        """The evaluation function to output accuracy.
-
-        Args:
-            results (dict): The key-value pair is the output head name and
-                corresponding prediction values.
-            logger (logging.Logger | str | None, optional): The defined logger
-                to be used. Defaults to None.
-            topk (tuple(int)): The output includes topk accuracy.
-        """
-        eval_res = {}
-        for name, val in results.items():
-            val = torch.from_numpy(val)
-            target = torch.LongTensor(self.data_source.get_gt_labels())
-            assert val.size(0) == target.size(0), (
-                f'Inconsistent length for results and labels, '
-                f'{val.size(0)} vs {target.size(0)}')
-
-            num = val.size(0)
-            _, pred = val.topk(max(topk), dim=1, largest=True, sorted=True)
-            pred = pred.t()
-            correct = pred.eq(target.view(1, -1).expand_as(pred))  # [K, N]
-            for k in topk:
-                correct_k = correct[:k].contiguous().view(-1).float().sum(
-                    0).item()
-                acc = correct_k * 100.0 / num
-                eval_res[f'{name}_top{k}'] = acc
-                if logger is not None and logger != 'silent':
-                    print_log(f'{name}_top{k}: {acc:.03f}', logger=logger)
-        return eval_res
-
 
 @DATASETS.register_module()
-class BreastUSClassification(BaseDataset):
+class BreastUSClassification(BreastScreeningDataset):
 
     def __init__(self, data_source, pipeline, prefetch=False):
         super(BreastUSClassification, self).__init__(data_source, pipeline,
                                                 prefetch)
         self.gt_labels = self.data_source.get_gt_labels()
+        self.biopsed_labels = self.data_source.get_biopsied_labels()
 
     def __getitem__(self, idx):
         label = self.gt_labels[idx]
@@ -121,36 +135,6 @@ class BreastUSClassification(BaseDataset):
 
         return dict(img=imgs, label=label, idx=idx, us_counts=us_counts)
 
-    def evaluate(self, results, logger=None, topk=(1, 5)):
-        """The evaluation function to output accuracy.
-
-        Args:
-            results (dict): The key-value pair is the output head name and
-                corresponding prediction values.
-            logger (logging.Logger | str | None, optional): The defined logger
-                to be used. Defaults to None.
-            topk (tuple(int)): The output includes topk accuracy.
-        """
-        eval_res = {}
-        for name, val in results.items():
-            val = torch.from_numpy(val)
-            target = torch.LongTensor(self.data_source.get_gt_labels())
-            assert val.size(0) == target.size(0), (
-                f'Inconsistent length for results and labels, '
-                f'{val.size(0)} vs {target.size(0)}')
-
-            num = val.size(0)
-            _, pred = val.topk(max(topk), dim=1, largest=True, sorted=True)
-            pred = pred.t()
-            correct = pred.eq(target.view(1, -1).expand_as(pred))  # [K, N]
-            for k in topk:
-                correct_k = correct[:k].contiguous().view(-1).float().sum(
-                    0).item()
-                acc = correct_k * 100.0 / num
-                eval_res[f'{name}_top{k}'] = acc
-                if logger is not None and logger != 'silent':
-                    print_log(f'{name}_top{k}: {acc:.03f}', logger=logger)
-        return eval_res
 
 
 
