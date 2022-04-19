@@ -53,6 +53,8 @@ class BreastScreeningDataset(BaseDataset):
 
         return dict(img=[img_ffdm, imgs_us], idx=idx, us_counts=us_counts)
 
+@DATASETS.register_module()
+class BreastClassificationDataset(BaseDataset):
     def evaluate(self, results, logger=None):
         """The evaluation function to output accuracy.
 
@@ -95,13 +97,11 @@ class BreastScreeningDataset(BaseDataset):
                 print_log(f'{name}_loss: {loss:.03f}', logger=logger)
                 print_log(f'{name}_acc: {acc:.03f}', logger=logger)
                 print_log(f'{name}_auc: {auc:.03f}', logger=logger)
-
-
         return eval_res
 
-
+        
 @DATASETS.register_module()
-class BreastFFDMClassification(BreastScreeningDataset):
+class BreastFFDMClassification(BreastClassificationDataset):
 
     def __init__(self, data_source, pipeline, prefetch=False):
         super(BreastFFDMClassification, self).__init__(data_source, pipeline, 
@@ -119,7 +119,7 @@ class BreastFFDMClassification(BreastScreeningDataset):
 
 
 @DATASETS.register_module()
-class BreastUSClassification(BreastScreeningDataset):
+class BreastUSClassification(BreastClassificationDataset):
 
     def __init__(self, data_source, pipeline, prefetch=False):
         super(BreastUSClassification, self).__init__(data_source, pipeline,
