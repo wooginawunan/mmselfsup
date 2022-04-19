@@ -32,9 +32,11 @@ python -m torch.distributed.launch \
     ${PY_ARGS}
 
     
+# /gpfs/data/geraslab/Nan/mmselfsup/work_dirs/benchmarks/classification/nyubreast/us/20220411_us_latest.pth/unfreeze_batch16/epoch_100.pth
+# epoch_100_on_full_val
 
-# bash tools/benchmarks/classification/dist_train_liner.sh \
-# configs/benchmarks/classification/nyubreast/ffdm.py \
-# /gpfs/data/geraslab/Nan/saves/selfsup/swav_breast/data_20220111_full/swav_resnet18_avgpool_coslr-100e_largebatch_skynet-gpu32/latest.pth
-# 1 
+# balanced_imagenet
+# epoch_100_on_full_val
+
+
 
