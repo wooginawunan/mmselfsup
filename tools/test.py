@@ -53,6 +53,11 @@ def parse_args():
         'It also allows nested list/tuple values, e.g. key="[(a,b),(c,d)]" '
         'Note that the quotation marks are necessary and that no white space '
         'is allowed.')
+    parser.add_argument(
+        '--breast',
+        action='store_true',
+        help='whether to use a customized collate function to process '
+        'batch-wise ultrasound images.')
     args = parser.parse_args()
     if 'LOCAL_RANK' not in os.environ:
         os.environ['LOCAL_RANK'] = str(args.local_rank)
@@ -116,6 +121,7 @@ def main():
         cfg.data.samples_per_gpu = cfg.data.imgs_per_gpu
     data_loader = build_dataloader(
         dataset,
+        breast=args.breast,
         samples_per_gpu=cfg.data.samples_per_gpu,
         workers_per_gpu=cfg.data.workers_per_gpu,
         dist=distributed,
@@ -137,7 +143,7 @@ def main():
 
     rank, _ = get_dist_info()
     if rank == 0:
-        dataset.evaluate(outputs, logger, topk=(1, 5))
+        dataset.evaluate(outputs, logger)
 
 
 if __name__ == '__main__':
