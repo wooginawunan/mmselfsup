@@ -17,11 +17,11 @@ from .simclr import SimCLR
 from .simmim import SimMIM
 from .simsiam import SimSiam
 from .swav import SwAV
-from .breast_swav import BreastSwAV
+from .breast_swav import BreastSwAV, MILAttenBreastSwAV
 
 __all__ = [
     'BaseModel', 'BYOL', 'Classification', 'DeepCluster', 'DenseCL', 'MoCo',
     'NPID', 'ODC', 'RelativeLoc', 'RotationPred', 'SimCLR', 'SimSiam', 'SwAV',
     'MAE', 'MoCoV3', 'SimMIM', 'MMClsImageClassifierWrapper', 'BreastSwAV',
-    'USClassification'
+    'USClassification', 'MILAttenBreastSwAV'
 ]
