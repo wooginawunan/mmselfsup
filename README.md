@@ -66,7 +66,13 @@ This project is released under the [Apache 2.0 license](LICENSE).
 
 ## ChangeLog
 
-MMSelfSup **v0.6.0** was released in 02/02/2022.
+MMSelfSup **v0.8.0** was released in 31/03/2022.
+
+Highlights of the new version:
+
+* Support **SimMIM**
+* Add **KNN** benchmark, support KNN test with checkpoint and extracted backbone weights
+* Support ImageNet-21k dataset
 
 Please refer to [changelog.md](docs/en/changelog.md) for details and release history.
 
@@ -92,6 +98,8 @@ Supported algorithms:
 - [x] [DenseCL (CVPR'2021)](https://arxiv.org/abs/2011.09157)
 - [x] [SimSiam (CVPR'2021)](https://arxiv.org/abs/2011.10566)
 - [x] [MoCo v3 (ICCV'2021)](https://arxiv.org/abs/2104.02057)
+- [x] [MAE](https://arxiv.org/abs/2111.06377)
+- [x] [SimMIM](https://arxiv.org/abs/2111.09886)
 
 More algorithms are in our plan.
 
@@ -113,13 +121,16 @@ More algorithms are in our plan.
 
 ## Installation
 
-Please refer to [install.md](docs/en/install.md) for installation and [prepare_data.md](docs/en/prepare_data.md) for dataset preparation.
+MMSelfSup depends on [PyTorch](https://pytorch.org/)], [MMCV](https://github.com/open-mmlab/mmcv) and [MMClassification](https://github.com/open-mmlab/mmclassification).
+
+Please refer to [install.md](docs/en/install.md) for more detailed instruction.
 
 ## Get Started
 
-Please see [getting_started.md](docs/en/getting_started.md) for the basic usage of MMSelfSup.
+Please refer to [prepare_data.md](docs/en/prepare_data.md) for dataset preparation and [getting_started.md](docs/en/getting_started.md) for the basic usage of MMSelfSup.
 
 We also provides tutorials for more details:
+
 - [config](docs/en/tutorials/0_config.md)
 - [add new dataset](docs/en/tutorials/1_new_dataset.md)
 - [data pipeline](docs/en/tutorials/2_data_pipeline.md)
@@ -127,6 +138,8 @@ We also provides tutorials for more details:
 - [customize schedules](docs/en/tutorials/4_schedule.md)
 - [customize runtime](docs/en/tutorials/5_runtime.md)
 - [benchmarks](docs/en/tutorials/6_benchmarks.md)
+
+Besides, we provide [colab tutorial](https://github.com/open-mmlab/mmselfsup/blob/master/demo/mmselfsup_colab_tutorial.ipynb) for basic usage.
 
 ## Citation
 
@@ -158,20 +171,21 @@ Remarks:
 ## Projects in OpenMMLab
 
 - [MMCV](https://github.com/open-mmlab/mmcv): OpenMMLab foundational library for computer vision.
-- [MIM](https://github.com/open-mmlab/mim): MIM Installs OpenMMLab Packages.
+- [MIM](https://github.com/open-mmlab/mim): MIM installs OpenMMLab packages.
 - [MMClassification](https://github.com/open-mmlab/mmclassification): OpenMMLab image classification toolbox and benchmark.
 - [MMDetection](https://github.com/open-mmlab/mmdetection): OpenMMLab detection toolbox and benchmark.
 - [MMDetection3D](https://github.com/open-mmlab/mmdetection3d): OpenMMLab's next-generation platform for general 3D object detection.
+- [MMRotate](https://github.com/open-mmlab/mmrotate): OpenMMLab rotated object detection toolbox and benchmark.
 - [MMSegmentation](https://github.com/open-mmlab/mmsegmentation): OpenMMLab semantic segmentation toolbox and benchmark.
-- [MMAction2](https://github.com/open-mmlab/mmaction2): OpenMMLab's next-generation action understanding toolbox and benchmark.
-- [MMTracking](https://github.com/open-mmlab/mmtracking): OpenMMLab video perception toolbox and benchmark.
+- [MMOCR](https://github.com/open-mmlab/mmocr): OpenMMLab text detection, recognition, and understanding toolbox.
 - [MMPose](https://github.com/open-mmlab/mmpose): OpenMMLab pose estimation toolbox and benchmark.
-- [MMEditing](https://github.com/open-mmlab/mmediting): OpenMMLab image and video editing toolbox.
-- [MMOCR](https://github.com/open-mmlab/mmocr): OpenMMLab toolbox for text detection, recognition and understanding.
-- [MMGeneration](https://github.com/open-mmlab/mmgeneration): OpenMMlab toolkit for generative models.
-- [MMFlow](https://github.com/open-mmlab/mmflow): OpenMMLab optical flow toolbox and benchmark.
-- [MMFewShot](https://github.com/open-mmlab/mmfewshot): OpenMMLab few shot learning toolbox and benchmark.
 - [MMHuman3D](https://github.com/open-mmlab/mmhuman3d): OpenMMLab 3D human parametric model toolbox and benchmark.
 - [MMSelfSup](https://github.com/open-mmlab/mmselfsup): OpenMMLab self-supervised learning toolbox and benchmark.
 - [MMRazor](https://github.com/open-mmlab/mmrazor): OpenMMLab model compression toolbox and benchmark.
+- [MMFewShot](https://github.com/open-mmlab/mmfewshot): OpenMMLab fewshot learning toolbox and benchmark.
+- [MMAction2](https://github.com/open-mmlab/mmaction2): OpenMMLab's next-generation action understanding toolbox and benchmark.
+- [MMTracking](https://github.com/open-mmlab/mmtracking): OpenMMLab video perception toolbox and benchmark.
+- [MMFlow](https://github.com/open-mmlab/mmflow): OpenMMLab optical flow toolbox and benchmark.
+- [MMEditing](https://github.com/open-mmlab/mmediting): OpenMMLab image and video editing toolbox.
+- [MMGeneration](https://github.com/open-mmlab/mmgeneration): OpenMMLab image and video generative models toolbox.
 - [MMDeploy](https://github.com/open-mmlab/mmdeploy): OpenMMLab model deployment framework.

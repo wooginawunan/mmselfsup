@@ -3,7 +3,7 @@
 
 import time
 
-import faiss
+# import faiss
 import numpy as np
 import torch
 from scipy.sparse import csr_matrix

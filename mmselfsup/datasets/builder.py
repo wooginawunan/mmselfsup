@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 
 from .samplers import DistributedSampler
 from .utils import PrefetchLoader
+from .customized_collate import collate as breast_collate
 
 if platform.system() != 'Windows':
     # https://github.com/pytorch/pytorch/issues/973
@@ -44,7 +45,6 @@ def build_dataset(cfg, default_args=None):
 
     return dataset
 
-
 def build_dataloader(dataset,
                      imgs_per_gpu=None,
                      samples_per_gpu=None,
@@ -56,6 +56,7 @@ def build_dataloader(dataset,
                      seed=None,
                      pin_memory=True,
                      persistent_workers=True,
+                     breast=False,
                      **kwargs):
     """Build PyTorch DataLoader.
 
@@ -108,7 +109,12 @@ def build_dataloader(dataset,
     rank, world_size = get_dist_info()
     if dist:
         sampler = DistributedSampler(
-            dataset, world_size, rank, shuffle=shuffle, replace=replace)
+            dataset,
+            world_size,
+            rank,
+            shuffle=shuffle,
+            replace=replace,
+            seed=seed)
         shuffle = False
         batch_size = samples_per_gpu
         num_workers = workers_per_gpu
@@ -131,13 +137,13 @@ def build_dataloader(dataset,
         img_norm_cfg = kwargs.pop('img_norm_cfg')
     else:
         prefetch = False
-
     data_loader = DataLoader(
         dataset,
         batch_size=batch_size,
         sampler=sampler,
         num_workers=num_workers,
-        collate_fn=partial(collate, samples_per_gpu=samples_per_gpu),
+        collate_fn=partial(collate if not breast else breast_collate, 
+            samples_per_gpu=samples_per_gpu),
         pin_memory=pin_memory,
         shuffle=shuffle,
         worker_init_fn=init_fn,

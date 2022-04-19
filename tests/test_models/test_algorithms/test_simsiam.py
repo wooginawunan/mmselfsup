@@ -1,4 +1,6 @@
 # Copyright (c) OpenMMLab. All rights reserved.
+import platform
+
 import pytest
 import torch
 
@@ -33,6 +35,7 @@ head = dict(
         norm_cfg=dict(type='BN1d')))
 
 
+@pytest.mark.skipif(platform.system() == 'Windows', reason='Windows mem limit')
 def test_simsiam():
     with pytest.raises(AssertionError):
         alg = SimSiam(backbone=backbone, neck=neck, head=None)
@@ -48,3 +51,13 @@ def test_simsiam():
     ]
     fake_out = alg.forward(fake_input)
     assert fake_out['loss'].item() > -1
+
+    # test train step
+    fake_outputs = alg.train_step(dict(img=fake_input), None)
+    assert fake_outputs['loss'].item() > -1
+    assert fake_outputs['num_samples'] == 16
+
+    # test val step
+    fake_outputs = alg.val_step(dict(img=fake_input), None)
+    assert fake_outputs['loss'].item() > -1
+    assert fake_outputs['num_samples'] == 16

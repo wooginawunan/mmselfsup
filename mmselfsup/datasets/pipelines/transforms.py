@@ -1,5 +1,6 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import inspect
+from typing import Tuple
 
 import numpy as np
 import torch
@@ -14,6 +15,92 @@ _EXCLUDED_TRANSFORMS = ['GaussianBlur']
 for m in inspect.getmembers(_transforms, inspect.isclass):
     if m[0] not in _EXCLUDED_TRANSFORMS:
         PIPELINES.register_module(m[1])
+
+
+@PIPELINES.register_module()
+
+class BlockwiseMaskGenerator(object):
+    """Generate random block mask for each Image.
+
+    Args:
+        input_size (int): Size of input image. Defaults to 192.
+        mask_patch_size (int): Size of each block mask. Defaults to 32.
+        model_patch_size (int): Patch size of each token. Defaults to 4.
+        mask_ratio (float): The mask ratio of image. Defaults to 0.6.
+    """
+
+    def __init__(self,
+                 input_size: int = 192,
+                 mask_patch_size: int = 32,
+                 model_patch_size: int = 4,
+                 mask_ratio: float = 0.6) -> None:
+        self.input_size = input_size
+        self.mask_patch_size = mask_patch_size
+        self.model_patch_size = model_patch_size
+        self.mask_ratio = mask_ratio
+
+        assert self.input_size % self.mask_patch_size == 0
+        assert self.mask_patch_size % self.model_patch_size == 0
+
+        self.rand_size = self.input_size // self.mask_patch_size
+        self.scale = self.mask_patch_size // self.model_patch_size
+
+        self.token_count = self.rand_size**2
+        self.mask_count = int(np.ceil(self.token_count * self.mask_ratio))
+
+    def __call__(self, img: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        mask_idx = np.random.permutation(self.token_count)[:self.mask_count]
+        mask = np.zeros(self.token_count, dtype=int)
+        mask[mask_idx] = 1
+
+        mask = mask.reshape((self.rand_size, self.rand_size))
+        mask = mask.repeat(self.scale, axis=0).repeat(self.scale, axis=1)
+
+        mask = torch.from_numpy(mask)  # H X W
+
+        return img, mask
+
+
+@PIPELINES.register_module()
+class RandomAug(object):
+    """RandAugment data augmentation method based on
+    `"RandAugment: Practical automated data augmentation
+    with a reduced search space"
+    <https://arxiv.org/abs/1909.13719>`_.
+
+    This code is borrowed from <https://github.com/pengzhiliang/MAE-pytorch>
+    """
+
+    def __init__(self,
+                 input_size=None,
+                 color_jitter=None,
+                 auto_augment=None,
+                 interpolation=None,
+                 re_prob=None,
+                 re_mode=None,
+                 re_count=None,
+                 mean=None,
+                 std=None):
+
+        self.trans = create_transform(
+            input_size=input_size,
+            is_training=True,
+            color_jitter=color_jitter,
+            auto_augment=auto_augment,
+            interpolation=interpolation,
+            re_prob=re_prob,
+            re_mode=re_mode,
+            re_count=re_count,
+            mean=mean,
+            std=std,
+        )
+
+    def __call__(self, img):
+        return self.trans(img)
+
+    def __repr__(self) -> str:
+        repr_str = self.__class__.__name__
+        return repr_str
 
 
 @PIPELINES.register_module()
@@ -150,3 +237,37 @@ class Solarization(object):
         repr_str += f'threshold = {self.threshold}, '
         repr_str += f'prob = {self.prob}'
         return repr_str
+
+# Transforms for breast cancer screening
+
+@PIPELINES.register_module()
+class Standardizer(object):
+
+    def __init__(self):
+        pass
+
+    def __call__(self, img):
+        img = (img - img.mean()) / np.maximum(img.std(), 10 ** (-5))
+        return img
+
+
+@PIPELINES.register_module()
+class CopyChannel(object):
+
+    def __init__(self):
+        pass
+
+    def __call__(self, img):
+        return img.repeat([3,1,1])
+
+
+@PIPELINES.register_module()
+class ToNumpy(object):
+    """
+    Use this class to shut up "UserWarning: The given NumPy array is not writeable ..."
+    """
+    def __init__(self):
+        pass
+
+    def __call__(self, img):
+        return np.array(img)

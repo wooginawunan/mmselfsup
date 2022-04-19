@@ -12,7 +12,8 @@ from mmcv.utils import build_from_cfg
 from mmselfsup.core import (DistOptimizerHook, GradAccumFp16OptimizerHook,
                             build_optimizer)
 from mmselfsup.datasets import build_dataloader, build_dataset
-from mmselfsup.utils import get_root_logger, multi_gpu_test, single_gpu_test
+from mmselfsup.utils import (find_latest_checkpoint, get_root_logger,
+                             multi_gpu_test, single_gpu_test)
 
 
 def init_random_seed(seed=None, device='cuda'):
@@ -68,6 +69,7 @@ def set_random_seed(seed, deterministic=False):
 def train_model(model,
                 dataset,
                 cfg,
+                breast=True,
                 distributed=False,
                 timestamp=None,
                 meta=None):
@@ -92,6 +94,8 @@ def train_model(model,
     data_loaders = [
         build_dataloader(
             ds,
+            breast=breast,
+            num_subsamples=getattr(cfg.data, 'num_subsamples', len(ds)),
             samples_per_gpu=cfg.data.samples_per_gpu,
             workers_per_gpu=cfg.data.workers_per_gpu,
             # `num_gpus` will be ignored if distributed
@@ -102,7 +106,8 @@ def train_model(model,
             drop_last=getattr(cfg.data, 'drop_last', False),
             prefetch=cfg.prefetch,
             persistent_workers=cfg.persistent_workers,
-            img_norm_cfg=cfg.img_norm_cfg) for ds in dataset
+            img_norm_cfg=cfg.img_norm_cfg,
+            timeout=0) for ds in dataset
     ]
 
     # put model on gpus
@@ -174,11 +179,12 @@ def train_model(model,
         val_dataset = build_dataset(cfg.data.val)
         val_dataloader = build_dataloader(
             val_dataset,
+            breast=breast,
             samples_per_gpu=cfg.data.samples_per_gpu,
             workers_per_gpu=cfg.data.workers_per_gpu,
             dist=distributed,
             shuffle=False,
-            prefetch=cfg.data.val.prefetch,
+            prefetch=cfg.prefetch,
             drop_last=getattr(cfg.data, 'drop_last', False),
             img_norm_cfg=cfg.get('img_norm_cfg', dict()))
         eval_cfg = cfg.get('evaluation', {})
@@ -192,8 +198,14 @@ def train_model(model,
             eval_hook(val_dataloader, test_fn=eval_fn, **eval_cfg),
             priority='LOW')
 
+    resume_from = None
+    if cfg.resume_from is None and cfg.get('auto_resume'):
+        resume_from = find_latest_checkpoint(cfg.work_dir)
+    if resume_from is not None:
+        cfg.resume_from = resume_from
+
     if cfg.resume_from:
         runner.resume(cfg.resume_from)
     elif cfg.load_from:
-        runner.load_checkpoint(cfg.load_from)
+        runner.load_checkpoint(cfg.load_from, cfg.revise_keys) #[(r'^module.', '')]
     runner.run(data_loaders, cfg.workflow)

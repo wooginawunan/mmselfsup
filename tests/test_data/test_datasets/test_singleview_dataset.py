@@ -19,17 +19,24 @@ if not prefetch:
          dict(type='Normalize', **img_norm_cfg)])
 
 
-def test_one_view_dataset():
+def test_single_view_dataset():
     data = dict(
         data_source=dict(
             type=data_source,
-            data_prefix=osp.join(osp.dirname(__file__), '../../data'),
+            data_prefix=osp.join(osp.dirname(__file__), '..', '..', 'data'),
             ann_file=osp.join(
-                osp.dirname(__file__), '../../data/data_list.txt'),
+                osp.dirname(__file__), '..', '..', 'data', 'data_list.txt'),
         ),
         pipeline=train_pipeline,
         prefetch=prefetch)
     dataset = SingleViewDataset(**data)
+    x = dataset[0]
+    assert 'img' in x
+    assert 'label' in x
+    assert 'idx' in x
+    assert x['img'].size() == (3, 4, 4)
+    assert x['idx'] == 0
+
     fake_results = {'test': np.array([[0.7, 0, 0.3], [0.5, 0.3, 0.2]])}
 
     with pytest.raises(AssertionError):

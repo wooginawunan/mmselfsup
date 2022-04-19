@@ -14,29 +14,29 @@ This paper does not describe a novel method. Instead, it studies a straightforwa
 
 ## Results and Models
 
-**Back to [model_zoo.md](../../../docs/en/model_zoo.md) to download models.**
+**Back to [model_zoo.md](https://github.com/open-mmlab/mmselfsup/blob/master/docs/en/model_zoo.md) to download models.**
 
-In this page, we provide benchmarks as much as possible to evaluate our pre-trained models. If not mentioned, all models were trained on ImageNet1k dataset.
+In this page, we provide benchmarks as much as possible to evaluate our pre-trained models. If not mentioned, all models are pre-trained on ImageNet-1k dataset.
 
 ### Classification
 
-The classification benchmarks includes 4 downstream task datasets, **VOC**, **ImageNet**,  **iNaturalist2018** and **Places205**. If not specified, the results are  Top-1 (%).
+The classification benchmarks includes 4 downstream task datasets, **VOC**, **ImageNet**,  **iNaturalist2018** and **Places205**. If not specified, the results are Top-1 (%).
 
 #### ImageNet Linear Evaluation
 
-The **Linear Evaluation** result is obtained by training a linear head upon the pre-trained backbone. Please refer to [vit-small-p16_8xb128-coslr-90e_in1k](../../benchmarks/classification/imagenet/vit-small-p16_8xb128-coslr-90e_in1k.py) for details of config.
+The **Linear Evaluation** result is obtained by training a linear head upon the pre-trained backbone. Please refer to [vit-small-p16_8xb128-coslr-90e_in1k](https://github.com/open-mmlab/mmselfsup/blob/master/configs/benchmarks/classification/imagenet/vit-small-p16_8xb128-coslr-90e_in1k.py) for details of config.
 
-| Self-Supervised Config                                                                                            | Linear Evaluation |
-| ----------------------------------------------------------------------------------------------------------------- | ----------------- |
-| [mocov3_vit-small-p16_32xb128-fp16-coslr-300e_in1k-224](mocov3_vit-small-p16_32xb128-fp16-coslr-300e_in1k-224.py) | 73.07             |
+| Self-Supervised Config                                                                                                                                                                | Linear Evaluation |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| [vit-small-p16_32xb128-fp16-coslr-300e_in1k-224](https://github.com/open-mmlab/mmselfsup/blob/master/configs/selfsup/mocov3/mocov3_vit-small-p16_32xb128-fp16-coslr-300e_in1k-224.py) | 73.19             |
 
 ## Citation
 
 ```bibtex
-@Article{chen2021mocov3,
-  author  = {Xinlei Chen* and Saining Xie* and Kaiming He},
-  title   = {An Empirical Study of Training Self-Supervised Vision Transformers},
-  journal = {arXiv preprint arXiv:2104.02057},
-  year    = {2021},
+@InProceedings{Chen_2021_ICCV,
+    title     = {An Empirical Study of Training Self-Supervised Vision Transformers},
+    author    = {Chen, Xinlei and Xie, Saining and He, Kaiming},
+    booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
+    year      = {2021}
 }
 ```

@@ -64,7 +64,13 @@ MMSelfSup 是一个基于 PyTorch 实现的开源自监督表征学习工具箱�
 
 ## 更新日志
 
-最新的 **v0.6.0** 版本已经在 2022.02.02 发布。
+最新的 **v0.8.0** 版本已经在 2022.03.31 发布。
+
+新版本亮点：
+
+* 支持 **SimMIM**
+* 增加 **KNN** 基准测试，支持中间 checkpoint 和提取的 backbone 权重进行评估
+* 支持 ImageNet-21k 数据集
 
 请参考 [更新日志](docs/zh_cn/changelog.md) 获取更多细节和历史版本信息。
 
@@ -91,6 +97,8 @@ MMSelfSup 和 OpenSelfSup 的不同点写在 [对比文档](docs/en/compatibilit
 - [x] [DenseCL (CVPR'2021)](https://arxiv.org/abs/2011.09157)
 - [x] [SimSiam (CVPR'2021)](https://arxiv.org/abs/2011.10566)
 - [x] [MoCo v3 (ICCV'2021)](https://arxiv.org/abs/2104.02057)
+- [x] [MAE](https://arxiv.org/abs/2111.06377)
+- [x] [SimMIM](https://arxiv.org/abs/2111.09886)
 
 更多的算法实现已经在我们的计划中。
 
@@ -112,13 +120,16 @@ MMSelfSup 和 OpenSelfSup 的不同点写在 [对比文档](docs/en/compatibilit
 
 ## 安装
 
-请参考 [安装文档](docs/zh_cn/install.md) 进行安装和参考 [准备数据](docs/zh_cn/prepare_data.md) 准备数据集。
+MMSelfSup 依赖 [PyTorch](https://pytorch.org/)], [MMCV](https://github.com/open-mmlab/mmcv) 和 [MMClassification](https://github.com/open-mmlab/mmclassification).
+
+请参考 [安装文档](docs/zh_cn/install.md) 获取更详细的安装指南。
 
 ## 快速入门
 
-请参考 [入门指南](docs/zh_cn/getting_started.md) 获取 MMSelfSup 的基本使用方法.
+请参考 [准备数据](docs/zh_cn/prepare_data.md) 准备数据集和 [入门指南](docs/zh_cn/getting_started.md) 获取 MMSelfSup 的基本使用方法.
 
 我们也提供了更加全面的教程，包括:
+
 - [配置文件](docs/zh_cn/tutorials/0_config.md)
 - [添加数据集](docs/zh_cn/tutorials/1_new_dataset.md)
 - [数据处理流](docs/zh_cn/tutorials/2_data_pipeline.md)
@@ -126,6 +137,8 @@ MMSelfSup 和 OpenSelfSup 的不同点写在 [对比文档](docs/en/compatibilit
 - [自定义流程](docs/zh_cn/tutorials/4_schedule.md)
 - [自定义运行](docs/zh_cn/tutorials/5_runtime.md)
 - [基准测试](docs/zh_cn/tutorials/6_benchmarks.md)
+
+另外，我们提供了 [colab 教程](https://github.com/open-mmlab/mmselfsup/blob/master/demo/mmselfsup_colab_tutorial.ipynb)。
 
 ## 参与贡献
 
@@ -152,22 +165,23 @@ MMSelfSup 是一款由不同学校和公司共同贡献的开源项目，我们�
 ## OpenMMLab 的其他项目
 
 - [MMCV](https://github.com/open-mmlab/mmcv): OpenMMLab 计算机视觉基础库
-- [MIM](https://github.com/open-mmlab/mim): MIM 是 OpenMMLab 项目、算法、模型的统一入口
-- [MMClassification](https://github.com/open-mmlab/mmclassification): OpenMMLab 图像分类工具箱与测试基准
-- [MMDetection](https://github.com/open-mmlab/mmdetection): OpenMMLab 检测工具箱与测试基准
-- [MMDetection3D](https://github.com/open-mmlab/mmdetection3d): OpenMMLab 新一代通用3D目标检测平台
-- [MMSegmentation](https://github.com/open-mmlab/mmsegmentation): OpenMMLab 语义分割工具箱与测试基准
-- [MMAction2](https://github.com/open-mmlab/mmaction2): OpenMMLab 新一代视频理解工具箱与测试基准
-- [MMTracking](https://github.com/open-mmlab/mmtracking): OpenMMLab 一体化视频目标感知平台
-- [MMPose](https://github.com/open-mmlab/mmpose): OpenMMLab 姿态估计工具箱与测试基准
-- [MMEditing](https://github.com/open-mmlab/mmediting): OpenMMLab 图像视频编辑工具箱
-- [MMOCR](https://github.com/open-mmlab/mmocr): OpenMMLab 全流程文字检测识别理解工具包
-- [MMGeneration](https://github.com/open-mmlab/mmgeneration): OpenMMLab 新一代生成模型工具箱
-- [MMFlow](https://github.com/open-mmlab/mmflow): OpenMMLab 光流估计工具箱与测试基准
-- [MMFewShot](https://github.com/open-mmlab/mmfewshot): OpenMMLab 少样本学习工具箱与测试基准
+- [MIM](https://github.com/open-mmlab/mim): MIM 是 OpenMMlab 项目、算法、模型的统一入口
+- [MMClassification](https://github.com/open-mmlab/mmclassification): OpenMMLab 图像分类工具箱
+- [MMDetection](https://github.com/open-mmlab/mmdetection): OpenMMLab 目标检测工具箱
+- [MMDetection3D](https://github.com/open-mmlab/mmdetection3d): OpenMMLab 新一代通用 3D 目标检测平台
+- [MMRotate](https://github.com/open-mmlab/mmrotate): OpenMMLab 旋转框检测工具箱与测试基准
+- [MMSegmentation](https://github.com/open-mmlab/mmsegmentation): OpenMMLab 语义分割工具箱
+- [MMOCR](https://github.com/open-mmlab/mmocr): OpenMMLab 全流程文字检测识别理解工具箱
+- [MMPose](https://github.com/open-mmlab/mmpose): OpenMMLab 姿态估计工具箱
 - [MMHuman3D](https://github.com/open-mmlab/mmhuman3d): OpenMMLab 人体参数化模型工具箱与测试基准
 - [MMSelfSup](https://github.com/open-mmlab/mmselfsup): OpenMMLab 自监督学习工具箱与测试基准
 - [MMRazor](https://github.com/open-mmlab/mmrazor): OpenMMLab 模型压缩工具箱与测试基准
+- [MMFewShot](https://github.com/open-mmlab/mmfewshot): OpenMMLab 少样本学习工具箱与测试基准
+- [MMAction2](https://github.com/open-mmlab/mmaction2): OpenMMLab 新一代视频理解工具箱
+- [MMTracking](https://github.com/open-mmlab/mmtracking): OpenMMLab 一体化视频目标感知平台
+- [MMFlow](https://github.com/open-mmlab/mmflow): OpenMMLab 光流估计工具箱与测试基准
+- [MMEditing](https://github.com/open-mmlab/mmediting): OpenMMLab 图像视频编辑工具箱
+- [MMGeneration](https://github.com/open-mmlab/mmgeneration): OpenMMLab 图片视频生成模型工具箱
 - [MMDeploy](https://github.com/open-mmlab/mmdeploy): OpenMMLab 模型部署框架
 
 ## 欢迎加入 OpenMMLab 社区

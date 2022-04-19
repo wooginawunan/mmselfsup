@@ -2,6 +2,58 @@
 
 ## MMSelfSup
 
+### v0.8.0 (31/03/2022)
+
+#### 亮点
+* 支持 **SimMIM** ([#239](https://github.com/open-mmlab/mmselfsup/pull/239))
+* 增加 **KNN** 基准测试，支持中间 checkpoint 和提取的 backbone 权重进行评估 ([#243](https://github.com/open-mmlab/mmselfsup/pull/243))
+* 支持 ImageNet-21k 数据集 ([#225](https://github.com/open-mmlab/mmselfsup/pull/225))
+
+#### New Features
+* 支持 SimMIM ([#239](https://github.com/open-mmlab/mmselfsup/pull/239))
+* 增加 KNN 基准测试，支持中间 checkpoint 和提取的 backbone 权重进行评估 ([#243](https://github.com/open-mmlab/mmselfsup/pull/243))
+* 支持 ImageNet-21k 数据集 ([#225](https://github.com/open-mmlab/mmselfsup/pull/225))
+* 支持自动继续 checkpoint 文件的训练 ([#245](https://github.com/open-mmlab/mmselfsup/pull/245))
+
+#### Bug Fixes
+* 在分布式 sampler 中增加种子 ([#250](https://github.com/open-mmlab/mmselfsup/pull/250))
+* 修复 dist_test_svm_epoch.sh 中参数位置问题 ([#260](https://github.com/open-mmlab/mmselfsup/pull/260))
+* 修复 prepare_voc07_cls.sh 中 mkdir 潜在错误 ([#261](https://github.com/open-mmlab/mmselfsup/pull/261))
+
+#### Improvements
+* 更新命令行参数模式 ([#253](https://github.com/open-mmlab/mmselfsup/pull/253))
+
+#### Docs
+* 修复 6_benchmarks.md 中命令文档([#263](https://github.com/open-mmlab/mmselfsup/pull/263))
+* 翻译 6_benchmarks.md 到中文 ([#262](https://github.com/open-mmlab/mmselfsup/pull/262))
+*
+### v0.7.0 (03/03/2022)
+
+#### 亮点
+* 支持 MAE 算法 ([#221](https://github.com/open-mmlab/mmselfsup/pull/221))
+* 增加 Places205 下游基准测试 ([#210](https://github.com/open-mmlab/mmselfsup/pull/210))
+* 在 CI 工作流中添加 Windows 测试 ([#215](https://github.com/open-mmlab/mmselfsup/pull/215))
+
+#### 新特性
+* 支持 MAE 算法 ([#221](https://github.com/open-mmlab/mmselfsup/pull/221))
+* 增加 Places205 下游基准测试 ([#210](https://github.com/open-mmlab/mmselfsup/pull/210))
+
+#### Bug 修复
+* 修复部分配置文件中的错误 ([#200](https://github.com/open-mmlab/mmselfsup/pull/200))
+* 修复图像读取通道问题并更新相关结果 ([#210](https://github.com/open-mmlab/mmselfsup/pull/210))
+* 修复在使用 prefetch 时，部分 dataset 输出格式不匹配的问题 ([#218](https://github.com/open-mmlab/mmselfsup/pull/218))
+* 修复 t-sne 'no init_cfg' 的错误 ([#222](https://github.com/open-mmlab/mmselfsup/pull/222))
+
+#### 改进
+* 配置文件中弃用 `imgs_per_gpu`， 改用 `samples_per_gpu` ([#204](https://github.com/open-mmlab/mmselfsup/pull/204))
+* 更新 MMCV 的安装方式 ([#208](https://github.com/open-mmlab/mmselfsup/pull/208))
+* 为 算法 readme 和代码版权增加 pre-commit 钩子 ([#213](https://github.com/open-mmlab/mmselfsup/pull/213))
+* 在 CI 工作流中添加 Windows 测试 ([#215](https://github.com/open-mmlab/mmselfsup/pull/215))
+
+#### 文档
+* 将 0_config.md 翻译成中文 ([#216](https://github.com/open-mmlab/mmselfsup/pull/216))
+* 更新主页 OpenMMLab 项目和介绍 ([#219](https://github.com/open-mmlab/mmselfsup/pull/219))
+
 ### v0.6.0 (02/02/2022)
 
 #### 亮点

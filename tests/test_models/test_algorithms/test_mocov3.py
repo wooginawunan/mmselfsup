@@ -1,4 +1,6 @@
 # Copyright (c) OpenMMLab. All rights reserved.
+import platform
+
 import pytest
 import torch
 
@@ -38,6 +40,7 @@ head = dict(
     temperature=0.2)
 
 
+@pytest.mark.skipif(platform.system() == 'Windows', reason='Windows mem limit')
 def test_mocov3():
     with pytest.raises(AssertionError):
         alg = MoCoV3(backbone=backbone, neck=None, head=head)
@@ -49,6 +52,6 @@ def test_mocov3():
     alg.momentum_update()
 
     fake_input = torch.randn((16, 3, 224, 224))
-    fake_backbone_out = alg.extract_feat(fake_input)
+    fake_backbone_out = alg.forward(fake_input, mode='extract')
     assert fake_backbone_out[0][0].size() == torch.Size([16, 384, 14, 14])
     assert fake_backbone_out[0][1].size() == torch.Size([16, 384])
