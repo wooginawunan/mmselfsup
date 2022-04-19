@@ -9,7 +9,6 @@ ffdm_pipeline = [
     dict(type='ToNumpy'), # TODO
     dict(type='ToTensor'),
     dict(type='Standardizer'),
-    # dict(type='CopyChannel')
 ]
 us_pipeline = [
     dict(type='RandomHorizontalFlip', p=0.5),
@@ -31,6 +30,7 @@ data = dict(
     samples_per_gpu=32,  # total 32*8=256
     workers_per_gpu=16,
     drop_last=True,
+    num_subsamples=None,
     train=dict(
         type=dataset_type,
         data_source=dict(
