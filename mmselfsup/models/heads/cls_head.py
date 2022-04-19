@@ -1,9 +1,10 @@
 # Copyright (c) OpenMMLab. All rights reserved.
+import torch
 import torch.nn as nn
 from mmcv.runner import BaseModule
 
 from ..builder import HEADS
-from ..utils import accuracy
+from ..utils import accuracy, auc
 
 
 @HEADS.register_module()
@@ -70,4 +71,10 @@ class ClsHead(BaseModule):
         assert isinstance(cls_score, (tuple, list)) and len(cls_score) == 1
         losses['loss'] = self.criterion(cls_score[0], labels)
         losses['acc'] = accuracy(cls_score[0], labels)
+        _, counts = torch.unique(labels, return_counts=True)
+        if len(counts)>1:
+            losses['pos_size'] = torch.as_tensor(counts[1], dtype = torch.float)
+        losses['neg_size'] = torch.as_tensor(counts[0], dtype = torch.float)
+
+        # losses['auc'] = auc(cls_score[0], labels)
         return losses

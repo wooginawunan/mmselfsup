@@ -26,6 +26,7 @@ class NYUBreastScreening(BaseDataSource):
 	ffdm_crop_size = (2944, 1920) 
 	# channel=3 if use ImageNet pretrained weights
 	us_select_index_logic = ('random', 50)
+	channel = 1
 	# # channel=3 if use ImageNet pretrained weights
 	# us_shape = (3, 256, 256)
 
@@ -88,7 +89,8 @@ class NYUBreastScreening(BaseDataSource):
 		output = []
 		for idx in indices:
 			img_np = np.load(osp.join(img_prefix, accession_number, f"{idx}.npy"))
-			img_pil = Image.fromarray(img_np.astype("uint8")).convert("L")
+			img_pil = Image.fromarray(img_np.astype("uint8")).convert(
+				"L" if self.channel==1 else "RGB") 
 			output.append(img_pil)
 
 		return output
@@ -141,6 +143,17 @@ class NYUBreastScreening(BaseDataSource):
 		"""
 
 		gt_labels = np.array([data['malignant'] \
+			for data in self.data_infos])
+		return gt_labels
+
+	def get_biopsied_labels(self):
+		"""Get all labels regarding whether the sample is biopsed.
+
+		Returns:
+		    list[int]: categories for all images.
+		"""
+
+		gt_labels = np.array([data['biopsied'] \
 			for data in self.data_infos])
 		return gt_labels
 
