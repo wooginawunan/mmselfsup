@@ -27,7 +27,6 @@ class ROCAUC(BaseModule):
 
     def __init__(self):
         super().__init__()
-        self.topk = topk
 
     def forward(self, pred, target):
         return auc(pred, target)
