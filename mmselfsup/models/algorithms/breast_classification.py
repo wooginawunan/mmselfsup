@@ -5,56 +5,12 @@ from ..builder import ALGORITHMS, build_backbone, build_head
 from ..utils import Sobel
 from .base import BaseModel
 
-
 @ALGORITHMS.register_module()
-class USClassification(BaseModel):
+class BaseBreastClassification(BaseModel):
     """Simple image classification.
-
-    Args:
-        backbone (dict): Config dict for module of backbone.
-        with_sobel (bool): Whether to apply a Sobel filter.
-            Defaults to False.
-        head (dict): Config dict for module of loss functions.
-            Defaults to None.
     """
-
-    def __init__(self, backbone, with_sobel=False, head=None, init_cfg=None):
-        super(USClassification, self).__init__(init_cfg)
-        self.with_sobel = with_sobel
-        if with_sobel:
-            self.sobel_layer = Sobel()
-        self.backbone = build_backbone(backbone)
-        self.mil_attn_V = nn.Linear(512, 128, bias=False)
-        self.mil_attn_U = nn.Linear(512, 128, bias=False)
-        self.mil_attn_w = nn.Linear(128, 1, bias=False)
-        assert head is not None
-        self.head = build_head(head)
-
-    def fusion(self, x, us_counts):
-
-        max_intermediate, _ = torch.max(x, dim=2)
-        emb, _ = torch.max(max_intermediate, dim=2)
-
-        attn_projection = torch.sigmoid(self.mil_attn_U(emb)) * torch.tanh(self.mil_attn_V(emb))
-        attn_score = self.mil_attn_w(attn_projection)
-
-        start_idx = 0
-        for i, end_idx in enumerate(torch.cumsum(us_counts, dim=0)):
-            # mask out the impact of a percentage of images
-            group = range(start_idx, end_idx)
-            softmax_input = attn_score[group]
-            attn_score[group] = torch.softmax(softmax_input, dim=0)
-            start_idx = end_idx
-
-        weighted_x = attn_score.unsqueeze(-1).unsqueeze(-1)*x
-
-        _x = []
-        for i, end_idx in enumerate(torch.cumsum(us_counts, dim=0)):
-            _out = torch.sum(weighted_x[start_idx:end_idx], dim=0)
-            _x.append(_out)
-            start_idx = end_idx
-
-        return [torch.stack(_x)]
+    def fusion(self, x, **kwargs):
+        pass
 
     def extract_feat(self, img):
         """Function to extract features from backbone.
@@ -84,7 +40,7 @@ class USClassification(BaseModel):
             dict[str, Tensor]: A dictionary of loss components.
         """
         x = self.extract_feat(img)
-        x = self.fusion(x[0], kwargs['us_counts'])
+        x = self.fusion(x[0], **kwargs)
         outs = self.head(x)
         loss_inputs = (outs, label)
         losses = self.head.loss(*loss_inputs)
@@ -101,8 +57,72 @@ class USClassification(BaseModel):
             dict[str, Tensor]: A dictionary of output features.
         """
         x = self.extract_feat(img)  # tuple
-        x = self.fusion(x[0], kwargs['us_counts'])
+        x = self.fusion(x[0], **kwargs)
         outs = self.head(x)
         keys = [f'head{i}' for i in self.backbone.out_indices]
         out_tensors = [out.cpu() for out in outs]  # NxC
         return dict(zip(keys, out_tensors))
+
+@ALGORITHMS.register_module()
+class USClassification(BaseBreastClassification):
+    """US classification model with attention agggregation over slices.
+    """
+
+    def __init__(self, backbone, with_sobel=False, head=None, init_cfg=None):
+        super(USClassification, self).__init__(init_cfg)
+        self.with_sobel = with_sobel
+        if with_sobel:
+            self.sobel_layer = Sobel()
+        self.backbone = build_backbone(backbone)
+        self.mil_attn_V = nn.Linear(512, 128, bias=False)
+        self.mil_attn_U = nn.Linear(512, 128, bias=False)
+        self.mil_attn_w = nn.Linear(128, 1, bias=False)
+        assert head is not None
+        self.head = build_head(head)
+
+    def fusion(self, x, **kwargs):
+
+        max_intermediate, _ = torch.max(x, dim=2)
+        emb, _ = torch.max(max_intermediate, dim=2)
+
+        attn_projection = torch.sigmoid(self.mil_attn_U(emb)) * torch.tanh(self.mil_attn_V(emb))
+        attn_score = self.mil_attn_w(attn_projection)
+
+        cumsum_counts = torch.cumsum(kwargs['us_counts'], dim=0)
+
+        start_idx = 0
+        for i, end_idx in enumerate(cumsum_counts):
+            # mask out the impact of a percentage of images
+            group = range(start_idx, end_idx)
+            softmax_input = attn_score[group]
+            attn_score[group] = torch.softmax(softmax_input, dim=0)
+            start_idx = end_idx
+
+        weighted_x = attn_score.unsqueeze(-1).unsqueeze(-1)*x
+
+        _x = []
+        for i, end_idx in enumerate(cumsum_counts):
+            _out = torch.sum(weighted_x[start_idx:end_idx], dim=0)
+            _x.append(_out)
+            start_idx = end_idx
+
+        return [torch.stack(_x)]
+
+
+@ALGORITHMS.register_module()
+class FFDMClassification(BaseBreastClassification):
+    """FFDM Classifier with locality attention head
+    """
+    def __init__(self, backbone, with_sobel=False, head=None, init_cfg=None):
+        super(FFDMClassification, self).__init__(init_cfg)
+        self.with_sobel = with_sobel
+        if with_sobel:
+            self.sobel_layer = Sobel()
+        self.backbone = build_backbone(backbone)
+        self.locality_atten = nn.Conv2d(512, 1, kernel_size=1, stride=1, bias=False)
+        assert head is not None
+        self.head = build_head(head)
+
+    def fusion(self, x, **kwargs):
+        atten = 2*torch.sigmoid(self.locality_atten(x))
+        return [x*atten] 
