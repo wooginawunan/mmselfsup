@@ -70,10 +70,9 @@ class NYUBreastScreening(BaseDataSource):
 
 		"""
 		if self.us_select_index_logic == "all":
-		   pass
+			pass
 		elif isinstance(self.us_select_index_logic, (list, tuple)) and self.us_select_index_logic[1] < len(indices):
-			method, count = self.us_select_index_logic
-		    
+			method, count = self.us_select_index_logic	    
 			if method == "first":
 				indices = indices[:count]
 			elif method == "random":
@@ -145,6 +144,19 @@ class NYUBreastScreening(BaseDataSource):
 		gt_labels = np.array([data['malignant'] \
 			for data in self.data_infos])
 		return gt_labels
+
+	def get_token_labels(self):
+
+		def one_hot_encoder(label_indices):
+			temp = [0] * 371
+			for index in label_indices:
+				temp[index] = 1
+			return temp
+
+		noisy_token_labels = np.array(
+			[one_hot_encoder(data['noisy_token_indicies']) for data in self.data_infos]
+			)
+		return noisy_token_labels
 
 	def get_biopsied_labels(self):
 		"""Get all labels regarding whether the sample is biopsed.
