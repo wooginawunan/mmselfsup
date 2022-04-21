@@ -52,6 +52,9 @@ class BreastScreeningDataset(BaseDataset):
         imgs_us = torch.stack([self.us_pipeline(img) for img in imgs_us])
 
         return dict(img=[img_ffdm, imgs_us], idx=idx, us_counts=us_counts)
+    
+    def evaluate(self, results, logger=None):
+        return NotImplemented
 
 @DATASETS.register_module()
 class BreastClassificationDataset(BaseDataset):
@@ -148,7 +151,7 @@ class BreastNoisyTokenDataset(BaseDataset):
             """Compute the loss."""
         
             val = torch.from_numpy(val)
-            target = torch.LongTensor(self.data_source.get_biopsied_labels())
+            target = torch.Tensor(self.token_labels).float()
             assert val.size(0) == target.size(0), (
                 f'Inconsistent length for results and labels, '
                 f'{val.size(0)} vs {target.size(0)}')
@@ -157,12 +160,21 @@ class BreastNoisyTokenDataset(BaseDataset):
             eval_res[f'{name}_loss'] = loss.item()
 
             pred = torch.sigmoid(val)
-            auc_micro = roc_auc_score(target.ravel(), pred.ravel())
+            n_labels = target.size(1)
+            auc_micro_list = []
+            for i in range(n_labels):
+                current_pred = pred.T[i]
+                current_label = target.T[i]
+                if current_label.sum()!=0:
+                    auc_micro = roc_auc_score(current_label.T, current_pred.T)
+                auc_micro_list.append(auc_micro)
+
+            # auc_micro = roc_auc_score(target.ravel(), pred.ravel())
             eval_res[f'{name}_auc_micro'] = auc_micro
 
             if logger is not None and logger != 'silent':
                 print_log(f'{name}_loss: {loss:.03f}', logger=logger)
-                print_log(f'{name}_auc_micro: {auc:.03f}', logger=logger)
+                print_log(f'{name}_auc_micro: {auc_micro:.03f}', logger=logger)
 
         return eval_res
 
@@ -171,6 +183,7 @@ class BreastFFDMNoisyToken(BreastNoisyTokenDataset):
 
     def __init__(self, data_source, pipeline, prefetch=False):
         super(BreastFFDMNoisyToken, self).__init__(data_source, pipeline, prefetch)
+        self.gt_labels = self.data_source.get_gt_labels()
         self.biopsed_labels = self.data_source.get_biopsied_labels()
         self.token_labels = self.data_source.get_token_labels()
 
@@ -188,6 +201,7 @@ class BreastUSNoisyToken(BreastNoisyTokenDataset):
 
     def __init__(self, data_source, pipeline, prefetch=False):
         super(BreastUSNoisyToken, self).__init__(data_source, pipeline, prefetch)
+        self.gt_labels = self.data_source.get_gt_labels()
         self.biopsed_labels = self.data_source.get_biopsied_labels()
         self.token_labels = self.data_source.get_token_labels()
         

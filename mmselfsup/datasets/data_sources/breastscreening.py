@@ -151,10 +151,11 @@ class NYUBreastScreening(BaseDataSource):
 			temp = [0] * 371
 			for index in label_indices:
 				temp[index] = 1
-			return temp
+			return np.array(temp, dtype=np.long)
 
-		noisy_token_labels = np.array(
-			[one_hot_encoder(data['noisy_token_indicies']) for data in self.data_infos]
+		noisy_token_labels = np.stack(
+			(one_hot_encoder(data['noisy_token_indicies']) \
+				for data in self.data_infos)
 			)
 		return noisy_token_labels
 
