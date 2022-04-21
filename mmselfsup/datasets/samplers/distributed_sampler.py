@@ -131,47 +131,29 @@ class DistributedWeightedSubsetSampler(DistributedSampler):
         else:
             self.num_samples = math.ceil(num_subsamples / self.num_replicas)  # type: ignore[arg-type]
         self.total_size = self.num_samples * self.num_replicas
+        self.pos_indices = [i for i, t in enumerate(self.dataset.gt_labels) if t==1]
+        self.neg_indices = [i for i, t in enumerate(self.dataset.gt_labels) if t==0]
 
-    def gather_sampled_indices(self, targets):
-        pos_indices = [i for i, t in enumerate(targets) if t==1]
-        neg_indices = [i for i, t in enumerate(targets) if t==0]
-        
-        assert len(pos_indices)<self.total_size
-
-        neg_indices = neg_indices[:self.total_size-len(pos_indices)]
-
-        indices = neg_indices+pos_indices
-        return indices
+        assert len(self.pos_indices)<self.total_size
 
     def generate_new_list(self):
-        # get targets (you can alternatively pass them in __init__, if this op is expensive)
-        targets = self.dataset.gt_labels#biopsed_labels
-        indices = self.gather_sampled_indices(targets)
+        g = torch.Generator()
+        g.manual_seed(self.epoch + self.seed)
+
+        neg_inds = torch.randperm(len(self.neg_indices), generator=g).tolist()
+        suffled_neg_indices = [self.neg_indices[i] \
+            for i in neg_inds[:self.total_size-len(self.pos_indices)]]
+        
+        indices = suffled_neg_indices+self.pos_indices
         assert len(indices)==self.total_size
 
-        if self.shuffle:
-            g = torch.Generator()
-            # When :attr:`shuffle=True`, this ensures all replicas
-            # use a different random ordering for each epoch.
-            # Otherwise, the next iteration of this sampler will
-            # yield the same ordering.
-            g.manual_seed(self.epoch + self.seed)
-            if self.replace:
-                ind_indices = torch.randint(
-                    low=0,
-                    high=len(indices),
-                    size=(len(indices), ),
-                    generator=g).tolist()
-                indices = [indices[i] for i in ind_indices]
-            else:
-                ind_indices = torch.randperm(len(indices), generator=g).tolist()
-                indices = [indices[i] for i in ind_indices]
+        if self.shuffle:          
+            ind_indices = torch.randperm(len(indices), generator=g).tolist()
+            indices = [indices[i] for i in ind_indices]
         else:
             indices = torch.sort(indices).tolist()
 
         self.indices = indices
-        # _, stats = np.unique([ targets[i] for i in self.indices], return_counts=True)
-        # print(stats)
 
 
 class DistributedGivenIterationSampler(Sampler):
