@@ -171,19 +171,26 @@ class BreastNoisyTokenDataset(BaseDataset):
             pred = torch.sigmoid(val)
             n_labels = target.size(1)
             auc_micro_list = []
+            prauc_micro_list = []
             for i in range(n_labels):
                 current_pred = pred.T[i]
                 current_label = target.T[i]
                 if current_label.sum()!=0:
                     auc_micro = roc_auc_score(current_label.T, current_pred.T)
+                    prauc_micro = average_precision_score(current_label.T, current_pred.T)
                 auc_micro_list.append(auc_micro)
+                prauc_micro_list.append(prauc_micro)
 
             # auc_micro = roc_auc_score(target.ravel(), pred.ravel())
-            eval_res[f'{name}_auc_micro'] = auc_micro
+            auc = np.mean(auc_micro_list)
+            prauc = np.mean(prauc_micro_list)
+            eval_res[f'{name}_auc_micro'] = auc
+            eval_res[f'{name}_prauc_micro'] = prauc
 
             if logger is not None and logger != 'silent':
                 print_log(f'{name}_loss: {loss:.03f}', logger=logger)
-                print_log(f'{name}_auc_micro: {auc_micro:.03f}', logger=logger)
+                print_log(f'{name}_auc_micro: {auc:.03f}', logger=logger)
+                print_log(f'{name}_prauc_micro: {prauc:.03f}', logger=logger)
 
         return eval_res
 
