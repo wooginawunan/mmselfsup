@@ -13,12 +13,14 @@ data = dict(
             type=data_source,
             data_prefix=data_prefix+'full',
             test_mode=False,
+            color_type='gray',
         )),
     val=dict(
         data_source=dict(
             type=data_source,
             data_prefix=data_prefix+'balanced',
             test_mode=True,
+            color_type='gray',
         )))
 
 # prefetch
