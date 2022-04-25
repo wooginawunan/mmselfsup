@@ -26,7 +26,7 @@ class NYUBreastScreening(BaseDataSource):
 	ffdm_crop_size = (2944, 1920) 
 	# channel=3 if use ImageNet pretrained weights
 	us_select_index_logic = ('random', 50)
-	channel = 1
+	# Use self.color_type insteadly 
 	# # channel=3 if use ImageNet pretrained weights
 	# us_shape = (3, 256, 256)
 
@@ -66,6 +66,8 @@ class NYUBreastScreening(BaseDataSource):
 			acn
 			filenames
 
+			we use self.color_type to determine 
+			the number of channels of the us images. 
 		Return:
 
 		"""
@@ -89,7 +91,7 @@ class NYUBreastScreening(BaseDataSource):
 		for idx in indices:
 			img_np = np.load(osp.join(img_prefix, accession_number, f"{idx}.npy"))
 			img_pil = Image.fromarray(img_np.astype("uint8")).convert(
-				"L" if self.channel==1 else "RGB") 
+				"RGB" if self.color_type=='color' else "L") 
 			output.append(img_pil)
 
 		return output

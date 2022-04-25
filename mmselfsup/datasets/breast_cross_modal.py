@@ -3,7 +3,7 @@ import torch
 
 from mmcv.utils import build_from_cfg, print_log
 from torchvision.transforms import Compose
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, average_precision_score
 
 from .base import BaseDataset
 from .builder import DATASETS, PIPELINES, build_datasource
@@ -40,7 +40,8 @@ class BreastScreeningDataset(BaseDataset):
 
     def __init__(self, data_source, ffdm_pipeline, us_pipeline):
         self.data_source = build_datasource(data_source)
-
+        if self.data_source.color_type=='color':
+            ffdm_pipeline.append(dict(type='CopyChannel'))
         self.ffdm_pipeline = Compose([build_from_cfg(p, PIPELINES) for p in ffdm_pipeline])
         self.us_pipeline = Compose([build_from_cfg(p, PIPELINES) for p in us_pipeline])
 
@@ -89,6 +90,9 @@ class BreastClassificationDataset(BaseDataset):
             pred = torch.nn.functional.softmax(val, dim=1)[:, 1]
             auc = roc_auc_score(target, pred)
             eval_res[f'{name}_auc'] = auc
+
+            prauc = average_precision_score(target, pred)
+            eval_res[f'{name}_prauc'] = prauc
                 
             _, pred = val.max(dim=1)
             pred = pred.t()
@@ -100,6 +104,7 @@ class BreastClassificationDataset(BaseDataset):
                 print_log(f'{name}_loss: {loss:.03f}', logger=logger)
                 print_log(f'{name}_acc: {acc:.03f}', logger=logger)
                 print_log(f'{name}_auc: {auc:.03f}', logger=logger)
+                print_log(f'{name}_prauc: {prauc:.03f}', logger=logger)
         return eval_res
 
         
@@ -107,8 +112,12 @@ class BreastClassificationDataset(BaseDataset):
 class BreastFFDMClassification(BreastClassificationDataset):
 
     def __init__(self, data_source, pipeline, prefetch=False):
-        super(BreastFFDMClassification, self).__init__(
-            data_source, pipeline, prefetch)
+        self.data_source = build_datasource(data_source)
+        if self.data_source.color_type=='color':
+            pipeline.append(dict(type='CopyChannel'))
+        pipeline = [build_from_cfg(p, PIPELINES) for p in pipeline]
+        self.pipeline = Compose(pipeline)
+        self.prefetch = prefetch
         self.gt_labels = self.data_source.get_gt_labels()
         self.biopsed_labels = self.data_source.get_biopsied_labels()
 
@@ -182,7 +191,12 @@ class BreastNoisyTokenDataset(BaseDataset):
 class BreastFFDMNoisyToken(BreastNoisyTokenDataset):
 
     def __init__(self, data_source, pipeline, prefetch=False):
-        super(BreastFFDMNoisyToken, self).__init__(data_source, pipeline, prefetch)
+        self.data_source = build_datasource(data_source)
+        if self.data_source.color_type=='color':
+            pipeline.append(dict(type='CopyChannel'))
+        pipeline = [build_from_cfg(p, PIPELINES) for p in pipeline]
+        self.pipeline = Compose(pipeline)
+        self.prefetch = prefetch
         self.gt_labels = self.data_source.get_gt_labels()
         self.biopsed_labels = self.data_source.get_biopsied_labels()
         self.token_labels = self.data_source.get_token_labels()
