@@ -23,8 +23,7 @@ def nondist_forward_collect(func, data_loader, length):
     """
     results = []
     prog_bar = mmcv.ProgressBar(len(data_loader))
-    for i, data in enumerate(data_loader):
-        input_data = dict(img=data['img'])
+    for i, input_data in enumerate(data_loader):
         with torch.no_grad():
             result = func(**input_data)  # feat_dict
         results.append(result)  # list of feat_dict
