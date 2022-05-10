@@ -1,5 +1,6 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import torch
+import numpy as np
 
 from mmcv.utils import build_from_cfg, print_log
 from torchvision.transforms import Compose
@@ -59,6 +60,12 @@ class BreastScreeningDataset(BaseDataset):
 
 @DATASETS.register_module()
 class BreastClassificationDataset(BaseDataset):
+    def set_epoch_sampler(self, epoch_sample_ref):
+        if epoch_sample_ref=='malignant':
+            self.batch_sample_labels = self.gt_labels
+        elif epoch_sample_ref=='biopsied':
+            self.batch_sample_labels = self.biopsed_labels
+
     def evaluate(self, results, logger=None):
         """The evaluation function to output accuracy.
 
@@ -77,7 +84,7 @@ class BreastClassificationDataset(BaseDataset):
             """Compute the loss."""
         
             val = torch.from_numpy(val)
-            target = torch.LongTensor(self.data_source.get_gt_labels())
+            target = torch.LongTensor(self.gt_labels)
             assert val.size(0) == target.size(0), (
                 f'Inconsistent length for results and labels, '
                 f'{val.size(0)} vs {target.size(0)}')
@@ -111,7 +118,7 @@ class BreastClassificationDataset(BaseDataset):
 @DATASETS.register_module()
 class BreastFFDMClassification(BreastClassificationDataset):
 
-    def __init__(self, data_source, pipeline, prefetch=False):
+    def __init__(self, data_source, pipeline, epoch_sample_ref='malignant', prefetch=False):
         self.data_source = build_datasource(data_source)
         if self.data_source.color_type=='color':
             pipeline.append(dict(type='CopyChannel'))
@@ -120,6 +127,7 @@ class BreastFFDMClassification(BreastClassificationDataset):
         self.prefetch = prefetch
         self.gt_labels = self.data_source.get_gt_labels()
         self.biopsed_labels = self.data_source.get_biopsied_labels()
+        self.set_epoch_sampler(epoch_sample_ref)
 
     def __getitem__(self, idx):
         label = self.gt_labels[idx]
@@ -133,11 +141,16 @@ class BreastFFDMClassification(BreastClassificationDataset):
 @DATASETS.register_module()
 class BreastUSClassification(BreastClassificationDataset):
 
-    def __init__(self, data_source, pipeline, prefetch=False):
-        super(BreastUSClassification, self).__init__(
-            data_source, pipeline, prefetch)
+    def __init__(self, data_source, pipeline, epoch_sample_ref='malignant', prefetch=False):
+        self.data_source = build_datasource(data_source)
+        pipeline = [build_from_cfg(p, PIPELINES) for p in pipeline]
+        self.pipeline = Compose(pipeline)
+        self.prefetch = prefetch
+        self.CLASSES = self.data_source.CLASSES
+
         self.gt_labels = self.data_source.get_gt_labels()
         self.biopsed_labels = self.data_source.get_biopsied_labels()
+        self.set_epoch_sampler(epoch_sample_ref)
 
     def __getitem__(self, idx):
         label = self.gt_labels[idx]
@@ -149,6 +162,12 @@ class BreastUSClassification(BreastClassificationDataset):
 
 @DATASETS.register_module()
 class BreastNoisyTokenDataset(BaseDataset):
+    def set_epoch_sampler(self, epoch_sample_ref):
+        if epoch_sample_ref=='malignant':
+            self.batch_sample_labels = self.gt_labels
+        elif epoch_sample_ref=='biopsied':
+            self.batch_sample_labels = self.biopsed_labels
+    
     def evaluate(self, results, logger=None):
         """
         """
@@ -197,7 +216,7 @@ class BreastNoisyTokenDataset(BaseDataset):
 @DATASETS.register_module()
 class BreastFFDMNoisyToken(BreastNoisyTokenDataset):
 
-    def __init__(self, data_source, pipeline, prefetch=False):
+    def __init__(self, data_source, pipeline, epoch_sample_ref='malignant', prefetch=False):
         self.data_source = build_datasource(data_source)
         if self.data_source.color_type=='color':
             pipeline.append(dict(type='CopyChannel'))
@@ -207,6 +226,7 @@ class BreastFFDMNoisyToken(BreastNoisyTokenDataset):
         self.gt_labels = self.data_source.get_gt_labels()
         self.biopsed_labels = self.data_source.get_biopsied_labels()
         self.token_labels = self.data_source.get_token_labels()
+        self.set_epoch_sampler(epoch_sample_ref)
 
     def __getitem__(self, idx):
         label = self.token_labels[idx]
@@ -220,11 +240,18 @@ class BreastFFDMNoisyToken(BreastNoisyTokenDataset):
 @DATASETS.register_module()
 class BreastUSNoisyToken(BreastNoisyTokenDataset):
 
-    def __init__(self, data_source, pipeline, prefetch=False):
-        super(BreastUSNoisyToken, self).__init__(data_source, pipeline, prefetch)
+    def __init__(self, data_source, pipeline, epoch_sample_ref='malignant', prefetch=False):
+
+        self.data_source = build_datasource(data_source)
+        pipeline = [build_from_cfg(p, PIPELINES) for p in pipeline]
+        self.pipeline = Compose(pipeline)
+        self.prefetch = prefetch
+        self.CLASSES = self.data_source.CLASSES
+
         self.gt_labels = self.data_source.get_gt_labels()
         self.biopsed_labels = self.data_source.get_biopsied_labels()
         self.token_labels = self.data_source.get_token_labels()
+        self.set_epoch_sampler(epoch_sample_ref)
         
     def __getitem__(self, idx):
         label = self.token_labels[idx]

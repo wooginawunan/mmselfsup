@@ -1,4 +1,5 @@
 # Copyright (c) OpenMMLab. All rights reserved.
+# TODO: current with problem when exams in the batch have same us slices.
 from collections.abc import Mapping, Sequence
 
 import torch
@@ -11,7 +12,6 @@ from mmcv.parallel.data_container import DataContainer
 def us_collate(batch):
 	return torch.cat(batch)
 	
-
 def collate(batch, samples_per_gpu=1):
     """Puts each data field into a tensor/DataContainer with outer dimension
     batch size.
@@ -78,10 +78,19 @@ def collate(batch, samples_per_gpu=1):
         transposed = zip(*batch)
         return [collate(samples, samples_per_gpu) for samples in transposed]
     elif isinstance(batch[0], Mapping):
-        return {
-            key: collate([d[key] for d in batch], samples_per_gpu)
-            for key in batch[0]
-        }
+        if ('us_counts' in batch[0].keys()) and len(batch[0]['img'])!=2:
+            out = {}
+            for key in batch[0]:
+                if key=='img':
+                    out[key] = us_collate([d[key] for d in batch])
+                else:
+                    out[key] = collate([d[key] for d in batch], samples_per_gpu)
+            return out
+        else:
+            return {
+                key: collate([d[key] for d in batch], samples_per_gpu)
+                for key in batch[0] 
+            }
     else:
         try:
             return default_collate(batch)
