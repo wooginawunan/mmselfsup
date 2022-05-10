@@ -131,8 +131,8 @@ class DistributedWeightedSubsetSampler(DistributedSampler):
         else:
             self.num_samples = math.ceil(num_subsamples / self.num_replicas)  # type: ignore[arg-type]
         self.total_size = self.num_samples * self.num_replicas
-        self.pos_indices = [i for i, t in enumerate(self.dataset.gt_labels) if t==1]
-        self.neg_indices = [i for i, t in enumerate(self.dataset.gt_labels) if t==0]
+        self.pos_indices = [i for i, t in enumerate(self.dataset.batch_sample_labels) if t==1]
+        self.neg_indices = [i for i, t in enumerate(self.dataset.batch_sample_labels) if t==0]
 
         assert len(self.pos_indices)<self.total_size
 

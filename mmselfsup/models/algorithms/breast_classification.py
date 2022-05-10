@@ -4,11 +4,29 @@ from torch import nn
 from ..builder import ALGORITHMS, build_backbone, build_head
 from ..utils import Sobel
 from .base import BaseModel
+from mmcv.runner import auto_fp16
 
 @ALGORITHMS.register_module()
 class BaseBreastClassification(BaseModel):
     """Simple image classification.
     """
+    @auto_fp16(apply_to=('img', ))
+    def forward(self, img, mode='train', **kwargs):
+        """Forward function of model.
+
+        Calls either forward_train, forward_test or extract_feat function
+        according to the mode.
+        """
+        if mode == 'train':
+            return self.forward_train(img, **kwargs)
+        elif mode == 'test':
+            return self.forward_test(img, **kwargs)
+        elif mode == 'extract':
+            x = self.extract_feat(img)
+            return self.fusion(x[0], **kwargs)
+        else:
+            raise Exception(f'No such mode: {mode}')
+
     def fusion(self, x, **kwargs):
         pass
 
@@ -74,8 +92,8 @@ class USClassification(BaseBreastClassification):
         if with_sobel:
             self.sobel_layer = Sobel()
         self.backbone = build_backbone(backbone)
-        self.mil_attn_V = nn.Linear(512, 128, bias=False)
-        self.mil_attn_U = nn.Linear(512, 128, bias=False)
+        self.mil_attn_V = nn.Linear(head.in_channels, 128, bias=False)
+        self.mil_attn_U = nn.Linear(head.in_channels, 128, bias=False)
         self.mil_attn_w = nn.Linear(128, 1, bias=False)
         assert head is not None
         self.head = build_head(head)
@@ -110,6 +128,24 @@ class USClassification(BaseBreastClassification):
 
 
 @ALGORITHMS.register_module()
+class USTsne(USClassification):
+    """US classification model with attention agggregation over slices.
+    """
+
+    def fusion(self, x, **kwargs):
+
+        cumsum_counts = torch.cumsum(kwargs['us_counts'], dim=0)
+        start_idx = 0
+        _x = []
+        for i, end_idx in enumerate(cumsum_counts):
+            _out = torch.sum(x[start_idx:end_idx], dim=0)
+            _x.append(_out)
+            start_idx = end_idx
+
+        return [torch.stack(_x)]
+
+
+@ALGORITHMS.register_module()
 class FFDMClassification(BaseBreastClassification):
     """FFDM Classifier with locality attention head
     """
@@ -119,7 +155,7 @@ class FFDMClassification(BaseBreastClassification):
         if with_sobel:
             self.sobel_layer = Sobel()
         self.backbone = build_backbone(backbone)
-        self.locality_atten = nn.Conv2d(512, 1, kernel_size=1, stride=1, bias=False)
+        self.locality_atten = nn.Conv2d(head.in_channels, 1, kernel_size=1, stride=1, bias=False)
         assert head is not None
         self.head = build_head(head)
 
