@@ -1,7 +1,7 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 from .accuracy import Accuracy, accuracy
 from .auc import auc
-from .extract_process import ExtractProcess, MultiExtractProcess
+from .extract_process import ExtractProcess, MultiExtractProcess, BreastUSExtractProcess
 from .gather_layer import GatherLayer
 from .knn_classifier import knn_classifier
 from .multi_pooling import MultiPooling
@@ -12,5 +12,5 @@ from .sobel import Sobel
 __all__ = [
     'Accuracy', 'accuracy', 'ExtractProcess', 'MultiExtractProcess',
     'GatherLayer', 'knn_classifier', 'MultiPooling', 'MultiPrototypes',
-    'build_2d_sincos_position_embedding', 'Sobel', 'auc'
+    'build_2d_sincos_position_embedding', 'Sobel', 'auc', 'BreastUSExtractProcess'
 ]

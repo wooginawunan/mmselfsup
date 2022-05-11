@@ -3,7 +3,8 @@ import torch.nn as nn
 from mmcv.runner import get_dist_info
 
 from mmselfsup.utils.collect import (dist_forward_collect,
-                                     nondist_forward_collect)
+                                     nondist_forward_collect,
+                                     multi_instance_forward_collect)
 from .multi_pooling import MultiPooling
 
 
@@ -40,6 +41,25 @@ class ExtractProcess(object):
         else:
             results = nondist_forward_collect(func, data_loader,
                                               len(data_loader.dataset))
+        return results
+
+
+class BreastUSExtractProcess(ExtractProcess):
+    """multi intances per exam
+    """
+    def extract(self, model, data_loader, distributed=False):
+        """The extract function to apply forward function and choose
+        distributed or not."""
+        assert distributed is not True
+        model.eval()
+
+        # the function sent to collect function
+        def func(**x):
+            return self._forward_func(model, **x)
+
+        rank, world_size = get_dist_info()
+        results = multi_instance_forward_collect(func, data_loader, rank)
+    
         return results
 
 

@@ -144,6 +144,13 @@ class USTsne(USClassification):
 
         return [torch.stack(_x)]
 
+@ALGORITHMS.register_module()
+class USMultInstanceTsne(USClassification):
+    """US classification model with attention agggregation over slices.
+    """
+
+    def fusion(self, x, **kwargs):
+        return [x]
 
 @ALGORITHMS.register_module()
 class FFDMClassification(BaseBreastClassification):

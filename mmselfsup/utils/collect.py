@@ -83,3 +83,33 @@ def dist_forward_collect(func, data_loader, rank, length, ret_rank=-1):
                 results_strip = None
         results_all[k] = results_strip
     return results_all
+
+
+def multi_instance_forward_collect(func, data_loader, length):
+    """Forward and collect network outputs.
+
+    This function performs forward propagation and collects outputs.
+    It can be used to collect results, features, losses, etc.
+
+    Args:
+        func (function): The function to process data. The output must be
+            a dictionary of CPU tensors.
+        data_loader (Dataloader): the torch Dataloader to yield data.
+        length (int): Expected length of output arrays.
+
+    Returns:
+        results_all (dict(np.ndarray)): The concatenated outputs.
+    """
+    results = []
+    prog_bar = mmcv.ProgressBar(len(data_loader))
+    for i, input_data in enumerate(data_loader):
+        with torch.no_grad():
+            result = func(**input_data)  # feat_dict
+        results.append(result)  # list of feat_dict
+        prog_bar.update()
+
+    results_all = {}
+    for k in results[0].keys():
+        results_all[k] = np.concatenate(
+            [batch[k].numpy() for batch in results], axis=0)
+    return results_all
