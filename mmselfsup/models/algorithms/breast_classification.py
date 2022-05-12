@@ -171,6 +171,22 @@ class FFDMClassification(BaseBreastClassification):
         return [x*atten]
 
 @ALGORITHMS.register_module()
+class FFDMGMIC(BaseBreastClassification):
+    """FFDM Classifier with locality attention head
+    """
+    def __init__(self, backbone, with_sobel=False, head=None, init_cfg=None):
+        super(FFDMGMIC, self).__init__(init_cfg)
+        self.with_sobel = with_sobel
+        if with_sobel:
+            self.sobel_layer = Sobel()
+        self.backbone = build_backbone(backbone)
+        assert head is not None
+        self.head = build_head(head)
+
+    def fusion(self, x, **kwargs):
+        return [x]
+
+@ALGORITHMS.register_module()
 class NYUMammoReaderStudyModel(FFDMClassification):
     """FFDM Classifier with locality attention head
     """

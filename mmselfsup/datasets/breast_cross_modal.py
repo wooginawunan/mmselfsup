@@ -59,6 +59,8 @@ class BreastScreeningDataset(BaseDataset):
     def evaluate(self, results, logger=None):
         return NotImplemented
 
+
+# Malignant classification
 @DATASETS.register_module()
 class BreastClassificationDataset(BaseDataset):
     def set_epoch_sampler(self, epoch_sample_ref):
@@ -129,7 +131,7 @@ class BreastFFDMClassification(BreastClassificationDataset):
         self.gt_labels = self.data_source.get_gt_labels()
         self.biopsed_labels = self.data_source.get_biopsied_labels()
         self.set_epoch_sampler(epoch_sample_ref)
-
+    
     def __getitem__(self, idx):
         label = self.gt_labels[idx]
         img = self.data_source.get_img(idx, 'ffdm')
@@ -137,6 +139,50 @@ class BreastFFDMClassification(BreastClassificationDataset):
         if self.prefetch:
             img = torch.from_numpy(to_numpy(img))
         return dict(img=img, label=label, idx=idx)
+
+
+@DATASETS.register_module()
+class BreastFFDMGMIC(BreastFFDMClassification):
+
+    def evaluate(self, results, logger=None):
+        """The evaluation function to output accuracy.
+
+        Args:
+            results (dict): The key-value pair is the output head name and
+                corresponding prediction values.
+            logger (logging.Logger | str | None, optional): The defined logger
+                to be used. Defaults to None.
+            topk (tuple(int)): The output includes topk accuracy.
+        """
+        criterion = torch.nn.BCEWithLogitsLoss()
+
+        eval_res = {}
+        for name, val in results.items():
+
+            """Compute the loss."""
+        
+            val = torch.from_numpy(val).float()
+            target = torch.from_numpy(self.gt_labels).float()
+            assert val.size(0) == target.size(0), (
+                f'Inconsistent length for results and labels, '
+                f'{val.size(0)} vs {target.size(0)}')
+
+            num = val.size(0)
+
+            loss = criterion(val, target)
+            eval_res[f'{name}_loss'] = loss.item()
+
+            auc = roc_auc_score(target, val)
+            eval_res[f'{name}_auc'] = auc
+
+            prauc = average_precision_score(target, val)
+            eval_res[f'{name}_prauc'] = prauc
+
+            if logger is not None and logger != 'silent':
+                print_log(f'{name}_loss: {loss:.03f}', logger=logger)
+                print_log(f'{name}_auc: {auc:.03f}', logger=logger)
+                print_log(f'{name}_prauc: {prauc:.03f}', logger=logger)
+        return eval_res
 
 
 @DATASETS.register_module()
@@ -199,6 +245,7 @@ class NYUMammoReaderStudy(BreastClassificationDataset):
             print_log(f'{name}_prauc: {prauc:.03f}', logger=logger)
         return eval_res
 
+
 @DATASETS.register_module()
 class BreastUSClassification(BreastClassificationDataset):
 
@@ -221,6 +268,8 @@ class BreastUSClassification(BreastClassificationDataset):
 
         return dict(img=imgs, label=label, idx=idx, us_counts=us_counts)
 
+
+# descriptor prediction
 @DATASETS.register_module()
 class BreastNoisyTokenDataset(BaseDataset):
     def set_epoch_sampler(self, epoch_sample_ref):
@@ -273,6 +322,7 @@ class BreastNoisyTokenDataset(BaseDataset):
                 print_log(f'{name}_prauc_micro: {prauc:.03f}', logger=logger)
 
         return eval_res
+
 
 @DATASETS.register_module()
 class BreastFFDMNoisyToken(BreastNoisyTokenDataset):

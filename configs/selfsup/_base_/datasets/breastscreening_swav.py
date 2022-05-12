@@ -36,6 +36,7 @@ data = dict(
         data_source=dict(
             type=data_source,
             data_prefix='/gpfs/data/geraslab/Nan/data/breast_mml_datalists/20220111/breasts_lists/ffdm_screening_only/full',
+            color_type='gray',
         ),
         ffdm_pipeline=ffdm_pipeline,
         us_pipeline=us_pipeline,
