@@ -168,4 +168,30 @@ class FFDMClassification(BaseBreastClassification):
 
     def fusion(self, x, **kwargs):
         atten = 2*torch.sigmoid(self.locality_atten(x))
-        return [x*atten] 
+        return [x*atten]
+
+@ALGORITHMS.register_module()
+class NYUMammoReaderStudyModel(FFDMClassification):
+    """FFDM Classifier with locality attention head
+    """
+    def forward_test(self, img, **kwargs):
+        """Forward computation during test.
+
+        Args:
+            img (Tensor): Input images of shape (N, C, H, W).
+                Typically these should be mean centered and std scaled.
+
+        Returns:
+            dict[str, Tensor]: A dictionary of output features.
+        """
+        x = self.extract_feat(img)  # tuple
+        x = self.fusion(x[0], **kwargs)
+        outs = self.head(x)
+        keys = [f'head{i}' for i in self.backbone.out_indices]
+        out_tensors = [out.cpu() for out in outs]  # NxC
+        
+        results = dict(zip(keys, out_tensors))
+        results['acc'] = kwargs['acc'].cpu()
+        results['lateral'] = kwargs['lateral'].cpu()
+        return results
+

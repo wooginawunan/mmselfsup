@@ -1,6 +1,7 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import torch
 import numpy as np
+import pandas as pd
 
 from mmcv.utils import build_from_cfg, print_log
 from torchvision.transforms import Compose
@@ -137,6 +138,66 @@ class BreastFFDMClassification(BreastClassificationDataset):
             img = torch.from_numpy(to_numpy(img))
         return dict(img=img, label=label, idx=idx)
 
+
+@DATASETS.register_module()
+class NYUMammoReaderStudy(BreastClassificationDataset):
+
+    def __init__(self, data_source, pipeline, epoch_sample_ref='malignant', prefetch=False):
+        self.data_source = build_datasource(data_source)
+        if self.data_source.color_type=='color':
+            pipeline.append(dict(type='CopyChannel'))
+        pipeline = [build_from_cfg(p, PIPELINES) for p in pipeline]
+        self.pipeline = Compose(pipeline)
+        self.prefetch = prefetch
+        self.gt_labels = self.data_source.get_gt_labels()
+        self.set_epoch_sampler(epoch_sample_ref)
+
+    def __getitem__(self, idx):
+        label = self.gt_labels[idx]
+        img = self.data_source.get_img(idx, 'ffdm')
+        img = self.pipeline(img)
+        if self.prefetch:
+            img = torch.from_numpy(to_numpy(img))
+        accession_number = int(self.data_source.data_infos[idx]['accession_number'])
+        lateral = int(self.data_source.data_infos[idx]['lateral']=='left')
+        #print(accession_number, lateral)
+        return dict(img=img, label=label, idx=idx, acc=accession_number, lateral=lateral)
+
+    def evaluate(self, results, logger=None):
+        """The evaluation function to output accuracy.
+
+        Args:
+            results (dict): The key-value pair is the output head name and
+                corresponding prediction values.
+            logger (logging.Logger | str | None, optional): The defined logger
+                to be used. Defaults to None.
+            topk (tuple(int)): The output includes topk accuracy.
+        """
+
+        eval_res = {}
+        name = 'head4'
+        val = torch.from_numpy(results[name])
+
+        df = {'acc': results['acc'], 
+            'lateral': results['lateral'],
+            'target': self.gt_labels,
+            'pred': torch.nn.functional.softmax(val, dim=1)[:, 1].numpy()}
+
+        df = pd.DataFrame(df)
+        agg_scores = df.groupby(['acc', 'lateral']).mean(['target', 'pred'])
+        pred = agg_scores['pred'].values
+        target = agg_scores['target'].values
+
+        auc = roc_auc_score(target, pred)
+        eval_res[f'{name}_auc'] = auc
+
+        prauc = average_precision_score(target, pred)
+        eval_res[f'{name}_prauc'] = prauc
+                
+        if logger is not None and logger != 'silent':
+            print_log(f'{name}_auc: {auc:.03f}', logger=logger)
+            print_log(f'{name}_prauc: {prauc:.03f}', logger=logger)
+        return eval_res
 
 @DATASETS.register_module()
 class BreastUSClassification(BreastClassificationDataset):
