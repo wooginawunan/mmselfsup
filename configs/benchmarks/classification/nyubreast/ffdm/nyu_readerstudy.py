@@ -5,7 +5,7 @@ data_source = 'NYUBreastScreening'
 dataset_type = 'NYUMammoReaderStudyGMIC'
 
 val_pipeline = [
-    dict(type='Resize', size=(736, 480)),
+    dict(type='Resize', size=(1472, 960)),
     dict(type='ToNumpy'), 
     dict(type='ToTensor'),
     dict(type='Standardizer'),
@@ -81,7 +81,7 @@ mp_start_method = 'fork'
 
 """
 
-export PREFIX=/gpfs/data/geraslab/Nan/mmselfsup/work_dirs/benchmarks/classification/nyubreast/ffdm/gmic/linear
+export PREFIX=/gpfs/data/geraslab/Nan/mmselfsup/work_dirs/benchmarks/classification/nyubreast/ffdm/gmic_highreso/linear
 
 bsub -q short -Is -n 20 -gpu "num=1:mode=shared:j_exclusive=yes" python -m torch.distributed.launch \
     --master_addr="127.0.0.1" \
@@ -96,14 +96,14 @@ bsub -q short -Is -n 20 -gpu "num=1:mode=shared:j_exclusive=yes" python -m torch
         data.val.data_source.color_type='color' \
         model.backbone.in_channels=3
 
-export EXP=swav_resnet18_milatten1_batch128 #  swav_resnet18_avgpool_coslr-100e_largebatch_skynet-gpu32 
+export EXP=swav_resnet18_avgpool_coslr-200e-ori_resolution_skynet #  swav_resnet18_avgpool_coslr-100e_largebatch_skynet-gpu32 
 bsub -q short -Is -n 20 -gpu "num=1:mode=shared:j_exclusive=yes" python -m torch.distributed.launch \
     --master_addr="127.0.0.1" \
     --master_port=29500 \
     --nproc_per_node=1 \
     tools/test.py configs/benchmarks/classification/nyubreast/ffdm/nyu_readerstudy.py \
     $PREFIX/$EXP/latest.pth\
-    --work-dir /gpfs/data/geraslab/Nan/mmselfsup/work_dirs/benchmarks/classification/nyu_readerstudy_mammo/gmic/$EXP\
+    --work-dir /gpfs/data/geraslab/Nan/mmselfsup/work_dirs/benchmarks/classification/nyu_readerstudy_mammo/gmic_highreso/$EXP\
     --launcher="pytorch" \
     --breast 
 """
