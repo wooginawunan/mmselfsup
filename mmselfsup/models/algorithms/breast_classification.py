@@ -156,13 +156,16 @@ class USMultInstanceTsne(USClassification):
 class FFDMClassification(BaseBreastClassification):
     """FFDM Classifier with locality attention head
     """
-    def __init__(self, backbone, with_sobel=False, head=None, init_cfg=None):
+    def __init__(self, backbone, with_sobel=False, head=None, init_cfg=None, freeze_fusion=False):
         super(FFDMClassification, self).__init__(init_cfg)
         self.with_sobel = with_sobel
         if with_sobel:
             self.sobel_layer = Sobel()
         self.backbone = build_backbone(backbone)
         self.locality_atten = nn.Conv2d(head.in_channels, 1, kernel_size=1, stride=1, bias=False)
+        if freeze_fusion:
+            for param in self.locality_atten.parameters():
+                param.requires_grad = False
         assert head is not None
         self.head = build_head(head)
 
