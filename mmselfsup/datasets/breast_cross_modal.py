@@ -247,6 +247,45 @@ class NYUMammoReaderStudy(BreastClassificationDataset):
 
 
 @DATASETS.register_module()
+class NYUMammoReaderStudyGMIC(NYUMammoReaderStudy):
+    def evaluate(self, results, logger=None):
+        """The evaluation function to output accuracy.
+
+        Args:
+            results (dict): The key-value pair is the output head name and
+                corresponding prediction values.
+            logger (logging.Logger | str | None, optional): The defined logger
+                to be used. Defaults to None.
+            topk (tuple(int)): The output includes topk accuracy.
+        """
+
+        eval_res = {}
+        name = 'head4'
+        val = results[name]
+
+        df = {'acc': results['acc'], 
+            'lateral': results['lateral'],
+            'target': self.gt_labels,
+            'pred': val}
+
+        df = pd.DataFrame(df)
+        agg_scores = df.groupby(['acc', 'lateral']).mean(['target', 'pred'])
+        pred = agg_scores['pred'].values
+        target = agg_scores['target'].values
+
+        auc = roc_auc_score(target, pred)
+        eval_res[f'{name}_auc'] = auc
+
+        prauc = average_precision_score(target, pred)
+        eval_res[f'{name}_prauc'] = prauc
+                
+        if logger is not None and logger != 'silent':
+            print_log(f'{name}_auc: {auc:.03f}', logger=logger)
+            print_log(f'{name}_prauc: {prauc:.03f}', logger=logger)
+        return eval_res
+
+
+@DATASETS.register_module()
 class BreastUSClassification(BreastClassificationDataset):
 
     def __init__(self, data_source, pipeline, epoch_sample_ref='malignant', prefetch=False):

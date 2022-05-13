@@ -5,7 +5,8 @@ from .classification import Classification
 from .breast_classification import (USClassification, 
     FFDMClassification, 
     USMultInstanceTsne,
-    NYUMammoReaderStudyModel
+    NYUMammoReaderStudyModel,
+    NYUMammoReaderStudyGMICModel
 )
 from .deepcluster import DeepCluster
 from .densecl import DenseCL
@@ -28,5 +29,5 @@ __all__ = [
     'NPID', 'ODC', 'RelativeLoc', 'RotationPred', 'SimCLR', 'SimSiam', 'SwAV',
     'MAE', 'MoCoV3', 'SimMIM', 'MMClsImageClassifierWrapper', 'BreastSwAV',
     'FFDMClassification', 'USClassification', 'MILAttenBreastSwAV', 'USMultInstanceTsne',
-    'NYUMammoReaderStudyModel'
+    'NYUMammoReaderStudyModel', 'NYUMammoReaderStudyGMICModel'
 ]
