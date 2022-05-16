@@ -4,7 +4,7 @@ import torch.nn as nn
 from mmcv.runner import BaseModule
 
 from ..builder import HEADS
-from ..utils import accuracy, auc
+from ..utils import accuracy, auc, FocalLoss
 
 
 @HEADS.register_module()
@@ -78,6 +78,30 @@ class ClsHead(BaseModule):
 
         # losses['auc'] = auc(cls_score[0], labels)
         return losses
+
+@HEADS.register_module()
+class FocalLossClsHead(ClsHead):
+    """Simplest classifier head, with only one fc layer and using FocalLoss.
+    """
+
+    def __init__(self,
+                 with_avg_pool=False,
+                 in_channels=2048,
+                 num_classes=1000,
+                 vit_backbone=False,
+                 gamma=2,
+                 init_cfg=[
+                     dict(type='Normal', std=0.01, layer='Linear'),
+                     dict(
+                         type='Constant',
+                         val=1,
+                         layer=['_BatchNorm', 'GroupNorm'])
+                 ]):
+        super(FocalLossClsHead, self).__init__(
+            with_avg_pool, in_channels, num_classes, vit_backbone, init_cfg)
+
+        self.criterion = FocalLoss(gamma=gamma, alpha=None, size_average=True)
+
 
 @HEADS.register_module()
 class MultiLabelHead(BaseModule):
