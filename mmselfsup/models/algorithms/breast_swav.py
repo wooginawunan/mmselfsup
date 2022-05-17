@@ -199,3 +199,69 @@ class MILAttenBreastSwAV(BaseModel):
         return loss
 
 
+
+@ALGORITHMS.register_module()
+class MultiCropBreastSwAV(MILAttenBreastSwAV):
+    """SwAV.
+
+    Implementation of `Unsupervised Learning of Visual Features by Contrasting
+    Cluster Assignments <https://arxiv.org/abs/2006.09882>`_.
+    The queue is built in `core/hooks/swav_hook.py`.
+
+    Args:
+        backbone (dict): Config dict for module of backbone.
+        neck (dict): Config dict for module of deep features to compact
+            feature vectors. Defaults to None.
+        head (dict): Config dict for module of loss functions.
+            Defaults to None.
+    """
+
+    def extract_feat(self, img):
+        """Function to extract features from backbone.
+
+        Args:
+            img (Tensor): Input images of shape (N, C, H, W).
+                Typically these should be mean centered and std scaled.
+
+        Returns:
+            tuple[Tensor]: Backbone outputs.
+        """
+        ffdm_img, ffdm_crops, us_imgs = img
+        ffdm_crops =  torch.cat([i for i in ffdm_crops], 0)
+        return self.ffdm_backbone(ffdm_img), self.ffdm_backbone(ffdm_crops), self.us_backbone(us_imgs)
+
+    def forward_train(self, img, **kwargs):
+        """Forward computation during training.
+
+        Args:
+            img (list[Tensor]): A list of input images with shape
+                (N, C, H, W). Typically these should be mean centered
+                and std scaled.
+
+        Returns:
+            dict[str, Tensor]: A dictionary of loss components.
+        """
+
+        ffdm_img, ffdm_crops, us_imgs = img
+
+        ffdm_output = self.ffdm_backbone(ffdm_img)
+        us_slice_output = self.us_backbone(us_imgs)
+
+        bs, nc, _, _, _ = ffdm_crops.shape
+        ffdm_crop_output = self.ffdm_backbone(torch.cat([i for i in ffdm_crops], 0))
+
+        us_output = self.us_fusion(us_slice_output[0], kwargs['us_counts'])
+        ffdm_output = self.ffdm_fusion(ffdm_output[0])
+
+        # ffdm_output: feature maps Batchx512x46x30 
+        # us_output: feature maps [256] Batchx512x8x8
+        # ffdm_crop_output:   feature maps [256] [Batchxnum_crops]x512x8x8
+        
+        # Bx512x46x30,  Bx512x8x8, BNx512x8x8, [\sum_{i=1}^{B} n_i]x512x8x8
+        outputs = [ffdm_output, us_output, ffdm_crop_output, us_slice_output]
+
+        # [B+B+BN+\sum_{i=1}^{B} n_i, C]
+        outputs = self.neck(outputs)[0]
+
+        loss = self.head(outputs, bs=bs, ncrops=nc, nslices=kwargs['us_counts'])
+        return loss

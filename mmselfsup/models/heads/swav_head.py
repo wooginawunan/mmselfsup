@@ -110,3 +110,102 @@ class SwAVHead(BaseModule):
             loss += subloss / (np.sum(self.num_crops) - 1)
         loss /= len(self.crops_for_assign)
         return dict(loss=loss)
+
+
+@HEADS.register_module()
+class BreastMultiCropSwAVHead(BaseModule):
+    """The head for BreastMultiCrop
+    """
+
+    def __init__(self,
+                 feat_dim,
+                 sinkhorn_iterations=3,
+                 epsilon=0.05,
+                 temperature=0.1,
+                 num_prototypes=3000,
+                 init_cfg=None):
+        super(BreastMultiCropSwAVHead, self).__init__(init_cfg)
+        self.sinkhorn_iterations = sinkhorn_iterations
+        self.epsilon = epsilon
+        self.temperature = temperature
+        self.use_queue = False
+        self.queue = None
+        self.world_size = dist.get_world_size() if dist.is_initialized() else 1
+
+        # prototype layer
+        self.prototypes = None
+        if isinstance(num_prototypes, list):
+            self.prototypes = MultiPrototypes(feat_dim, num_prototypes)
+        elif num_prototypes > 0:
+            self.prototypes = nn.Linear(feat_dim, num_prototypes, bias=False)
+        assert self.prototypes is not None
+
+    def forward(self, x, bs, ncrops, nslices):
+        """Forward head of swav to compute the loss.
+
+        Args:
+            x (Tensor): NxC input features.
+        Returns:
+            dict[str, Tensor]: A dictionary of loss components.
+        """
+        # normalize the prototypes
+        with torch.no_grad():
+            w = self.prototypes.weight.data.clone()
+            w = nn.functional.normalize(w, dim=1, p=2)
+            self.prototypes.weight.copy_(w)
+
+        embedding, output = x, self.prototypes(x)
+        embedding = embedding.detach()
+
+        loss = 0
+
+        for i, crop_id in enumerate([0, 1]):
+            with torch.no_grad():
+                out = output[bs * crop_id:bs * (crop_id + 1)].detach()
+                # time to use the queue
+                if self.queue is not None:
+                    if self.use_queue or not torch.all(self.queue[i,
+                                                                  -1, :] == 0):
+                        self.use_queue = True
+                        out = torch.cat(
+                            (torch.mm(self.queue[i],
+                                      self.prototypes.weight.t()), out))
+                    # fill the queue
+                    self.queue[i, bs:] = self.queue[i, :-bs].clone()
+                    self.queue[i, :bs] = embedding[crop_id * bs:(crop_id + 1) *
+                                                   bs]
+
+                # get assignments (batch_size * num_prototypes)
+                q = distributed_sinkhorn(out, self.sinkhorn_iterations,
+                                         self.world_size, self.epsilon)[-bs:]
+
+            # cluster assignment prediction
+            subloss = 0
+            v = int(1-crop_id)
+            x = output[bs * v: bs * (v+1)] / self.temperature
+
+            if crop_id==0:
+                subloss -= torch.sum(
+                    torch.sum(q * nn.functional.log_softmax(x, dim=1), dim=1))
+
+                start_idx = bs*(2+ncrops)
+                _q = []
+                for batch_idx, ns in enumerate(nslices):
+                    _q.extend([q[batch_idx]]*ns)
+                _q = torch.stack(_q)
+                
+                x = output[bs*(2+ncrops): ] / self.temperature
+                subloss -= torch.sum(
+                    torch.sum(_q * nn.functional.log_softmax(x, dim=1), dim=1))
+                loss += subloss / (nslices.sum()+bs) 
+            else:
+                subloss -= torch.mean(
+                    torch.sum(q * nn.functional.log_softmax(x, dim=1), dim=1))
+                for v in range(ncrops):
+                    x = output[bs * 2+v : bs * (2+ncrops-1)+v: ncrops] / self.temperature
+                    subloss -= torch.mean(
+                        torch.sum(q * nn.functional.log_softmax(x, dim=1), dim=1))
+                loss += subloss / (ncrops+1)
+
+        loss /= 2
+        return dict(loss=loss)

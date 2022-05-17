@@ -78,7 +78,7 @@ def collate(batch, samples_per_gpu=1):
         transposed = zip(*batch)
         return [collate(samples, samples_per_gpu) for samples in transposed]
     elif isinstance(batch[0], Mapping):
-        if ('us_counts' in batch[0].keys()) and len(batch[0]['img'])!=2:
+        if ('us_counts' in batch[0].keys()) and len(batch[0]['img'])<2:
             out = {}
             for key in batch[0]:
                 if key=='img':

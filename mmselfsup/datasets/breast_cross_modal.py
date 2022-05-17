@@ -59,6 +59,53 @@ class BreastScreeningDataset(BaseDataset):
     def evaluate(self, results, logger=None):
         return NotImplemented
 
+
+@DATASETS.register_module()
+class BreastScreeningMultiViewDataset(BaseDataset):
+    """The dataset outputs data sampel from two modalities.
+
+    The number of views in the output dict depends on `num_views`. The
+    image can be processed by one pipeline or multiple piepelines.
+
+    Args:
+
+    Examples:
+
+    """
+
+    def __init__(self, data_source, ffdm_num_crops, ffdm_pipelines, us_pipeline):
+        self.data_source = build_datasource(data_source)
+
+        self.ffdm_pipelines = []
+        for pipeline in ffdm_pipelines:
+            if self.data_source.color_type=='color':
+                pipeline.append(dict(type='CopyChannel'))
+            self.ffdm_pipelines.append(
+                Compose([build_from_cfg(p, PIPELINES) for p in pipeline])
+            )
+
+        self.ffdm_num_crops = ffdm_num_crops
+            
+        self.us_pipeline = Compose([build_from_cfg(p, PIPELINES) \
+            for p in us_pipeline])
+
+    def __getitem__(self, idx):
+        img_ffdm, imgs_us = self.data_source.get_sample(idx)
+        us_counts = len(imgs_us)
+
+        img_ffdm_full = self.ffdm_pipelines[0](img_ffdm)
+        imgs_ffdm_crops = torch.stack(
+            [self.ffdm_pipelines[1](img_ffdm) for i in range(self.ffdm_num_crops)])
+
+        imgs_us = torch.stack([self.us_pipeline(img) for img in imgs_us])
+
+        return dict(img=[img_ffdm_full, imgs_ffdm_crops, imgs_us], 
+                    idx=idx, 
+                    us_counts=us_counts)
+    
+    def evaluate(self, results, logger=None):
+        return NotImplemented
+
 @DATASETS.register_module()
 class BreastClassificationDataset(BaseDataset):
     def set_epoch_sampler(self, epoch_sample_ref):
