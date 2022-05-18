@@ -25,7 +25,7 @@ class NYUBreastScreening(BaseDataSource):
 	"""
 	ffdm_crop_size = (2944, 1920) 
 	# channel=3 if use ImageNet pretrained weights
-	us_select_index_logic = ('random', 50)
+	us_select_index_logic = ('random', 30)
 	# Use self.color_type insteadly 
 	# # channel=3 if use ImageNet pretrained weights
 	# us_shape = (3, 256, 256)
