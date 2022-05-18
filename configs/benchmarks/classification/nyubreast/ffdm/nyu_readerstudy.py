@@ -76,14 +76,25 @@ opencv_num_threads = 0
 mp_start_method = 'fork'
 
 """
-python -m torch.distributed.launch \
+bsub -q short -Is -n 20 -gpu "num=$GPUS:mode=shared:j_exclusive=yes" python -m torch.distributed.launch \
     --master_addr="127.0.0.1" \
     --master_port=29500 \
     --nproc_per_node=1 \
     tools/test.py configs/benchmarks/classification/nyubreast/ffdm/nyu_readerstudy.py \
-    /gpfs/data/geraslab/Nan/mmselfsup/work_dirs/benchmarks/classification/nyubreast/ffdm_highresolution/ffdm_latest.pth/ablation_reso/latest.pth \
-    --work-dir /gpfs/data/geraslab/Nan/mmselfsup/work_dirs/benchmarks/classification/nyu_readerstudy_mammo/ffdm/20220411_ffdm_latest.pth/locality_atten \
+    /gpfs/data/geraslab/Nan/mmselfsup/work_dirs/benchmarks/classification/nyubreast/ffdm/nyu_ffdm_screening/imagenet/locality_atten/latest.pth \
+    --work-dir /gpfs/data/geraslab/Nan/mmselfsup/work_dirs/benchmarks/classification/nyu_readerstudy_mammo/ffdm/nyu_ffdm_screening/imagenet/locality_atten \
     --launcher="pytorch" \
     --breast \
 
+export PREFIX='/gpfs/data/geraslab/Nan/mmselfsup/work_dirs/benchmarks/classification/'
+
+bsub -q short -Is -n 20 -gpu "num=$GPUS:mode=shared:j_exclusive=yes" python -m torch.distributed.launch \
+    --master_addr="127.0.0.1" \
+    --master_port=29500 \
+    --nproc_per_node=1 \
+    tools/test.py configs/benchmarks/classification/nyubreast/ffdm/nyu_readerstudy.py \
+    $PREFIX/nyubreast/ffdm/nyu_ffdm_screening/swav_resnet18_milatten1_batch128/pretrained_head/1e-3/latest.pth \
+    --work-dir $PREFIX/nyu_readerstudy_mammo/ffdm/nyu_ffdm_screening_supervised/eval_nyu_readerstudy/swav_resnet18_milatten1_batch128/1e-3 \
+    --launcher="pytorch" \
+    --breast 
 """
