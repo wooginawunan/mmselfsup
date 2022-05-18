@@ -184,27 +184,26 @@ class BreastMultiCropSwAVHead(BaseModule):
             v = int(1-crop_id)
             x = output[bs * v: bs * (v+1)] / self.temperature
 
-            if crop_id==0:
-                subloss -= torch.sum(
+            subloss -= torch.mean(
                     torch.sum(q * nn.functional.log_softmax(x, dim=1), dim=1))
 
-                start_idx = bs*(2+ncrops)
+            if crop_id==0:
                 _q = []
                 for batch_idx, ns in enumerate(nslices):
                     _q.extend([q[batch_idx]]*ns)
                 _q = torch.stack(_q)
                 
                 x = output[bs*(2+ncrops): ] / self.temperature
-                subloss -= torch.sum(
-                    torch.sum(_q * nn.functional.log_softmax(x, dim=1), dim=1))
-                loss += subloss / (nslices.sum()+bs) 
-            else:
                 subloss -= torch.mean(
-                    torch.sum(q * nn.functional.log_softmax(x, dim=1), dim=1))
+                    torch.sum(_q * nn.functional.log_softmax(x, dim=1), dim=1))
+
+                loss += subloss / 2
+            else:
                 for v in range(ncrops):
-                    x = output[bs * 2+v : bs * (2+ncrops-1)+v: ncrops] / self.temperature
+                    x = output[bs * 2+v : bs * (2+ncrops): ncrops] / self.temperature
                     subloss -= torch.mean(
                         torch.sum(q * nn.functional.log_softmax(x, dim=1), dim=1))
+
                 loss += subloss / (ncrops+1)
 
         loss /= 2

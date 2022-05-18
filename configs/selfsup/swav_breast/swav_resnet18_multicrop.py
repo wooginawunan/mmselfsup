@@ -22,6 +22,7 @@ custom_hooks = [
 
 # optimizer
 optimizer = dict(type='LARS', lr=0.6)
+# optimizer = dict(type='LARS', lr=4.8, weight_decay=1e-6, momentum=0.9)
 optimizer_config = dict(frozen_layers_cfg=dict(prototypes=5005))
 
 # learning policy
